@@ -18,3 +18,5 @@ __pycache__/
 node_modules/
 # Local toolchain kept beside the code (emsdk, upstream reference checkout, oracle venv)
 toolchain/
+# Claude Code local files (plans, settings)
+.claude/
