@@ -16,3 +16,5 @@ __pycache__/
 *.pyc
 .venv/
 node_modules/
+# Local toolchain kept beside the code (emsdk, upstream reference checkout, oracle venv)
+toolchain/

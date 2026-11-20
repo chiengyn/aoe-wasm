@@ -13,6 +13,10 @@ engine or platform behavior.
 
 ## Commands
 
+A local, git-ignored `toolchain/` folder may hold `emsdk/` (pass `--sdk toolchain/emsdk`),
+`engine-reference/` (pristine aoe1-decomp for `tools/report_engine.py --reference`) and
+`drawing-oracle-venv/` (run `toolchain/drawing-oracle-venv/bin/python tests/test_drawing_oracle.py`).
+
 ```sh
 # Build (emsdk 7.0.0 tested; pass its root with --sdk)
 python3 engine/build.py --sdk <emsdk> --jobs 8 --game --probe       # debug game + probe -> engine/build/
