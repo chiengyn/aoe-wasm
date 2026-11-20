@@ -35,10 +35,11 @@ function present(bits, width, height, pitch, palette) {
 
 async function start(commandLine) {
   const native = await json(dataDir + '/native.json');
-  send('status', {text: `Loading ${native.files.length} game files…`});
+  // key (+ count): the status for pages that show it in their own words (lobby-i18n.mjs).
+  send('status', {text: `Loading ${native.files.length} game files…`, key: 'loading', count: native.files.length});
   const db = await openStorage();
   const [wasmBinary, stored, ...contents] = await Promise.all([bytes('engine/game.wasm'), loadFiles(db), ...native.files.map(f => bytes(f.url))]);
-  send('status', {text: 'Starting WinMain…'});
+  send('status', {text: 'Starting WinMain…', key: 'starting'});
   game = await createGame({
     wasmBinary,
     noInitialRun: true,
@@ -72,7 +73,7 @@ async function start(commandLine) {
     try { setRoom(game, room, (event, code) => send('room', {event, code})); }
     catch (error) { send('room', {event: 'failed', code: 0, reason: String(error?.message || error)}); return; }
   }
-  send('status', {text: db ? 'Running' : 'Running (browser storage unavailable: profiles and saves are not kept)'});
+  send('status', db ? {text: 'Running', key: 'running'} : {text: 'Running (browser storage unavailable: profiles and saves are not kept)', key: 'runningNoStorage'});
   try { game.callMain(commandLine.split(/\s+/).filter(Boolean)); } catch (error) { if (!/unwind/i.test(String(error))) end('abort', {reason: String(error)}); }
 }
 

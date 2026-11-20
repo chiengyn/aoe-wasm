@@ -91,7 +91,9 @@ game, so keep the server private (LAN, VPN, or behind authentication on the prox
 
 ### Playing multiplayer
 
-`http://127.0.0.1:8788/` is the room lobby:
+`http://127.0.0.1:8788/` is the room lobby. It is in English or Vietnamese: the switch at the top
+(remembered in the browser) or else the browser's language picks it (`web/lobby-i18n.mjs`). Only the lobby
+is translated. The game keeps the text of its own language DLLs, and names stay Windows-1252.
 
 1. Pick a name. The lobby keeps it in the browser (localStorage), and other players see you by it.
 2. **Create a room**: give it a name, and a password if only invited players should join. Without a

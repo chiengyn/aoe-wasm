@@ -2,7 +2,7 @@
 """Static checks of the browser page without starting a browser.
 
 Checks local links in web/*.html, that every element ID the pages' scripts look up (getElementById() in
-native.html, $('...') in lobby.mjs for index.html) names an element on the page, that every web module parses (node --check) and that relative imports resolve. With --built, also checks that
+native.html, $('...') in lobby.mjs for index.html) names an element on the page, that every lobby text key exists in each language, that every web module parses (node --check) and that relative imports resolve. With --built, also checks that
 the game build has been copied to web/engine/ (engine/build.py --game --web). Writes reports/web-static.json.
 """
 from pathlib import Path
@@ -37,6 +37,17 @@ for identifier in re.findall(r"getElementById\('([^']+)'\)", native):
     assert identifier in pages['native.html'].ids, identifier
 for identifier in re.findall(r"\$\('([^']+)'\)", (WEB / 'lobby.mjs').read_text()):
     assert identifier in pages['index.html'].ids, 'lobby.mjs: ' + identifier
+# Every lobby text key (data-i18n* in index.html, t('…') in lobby.mjs) exists in each language of lobby-i18n.mjs.
+keys = subprocess.run([args.node, '--input-type=module', '-e',
+                       "const {STRINGS} = await import(process.argv[1]);"
+                       "console.log(JSON.stringify(Object.fromEntries(Object.entries(STRINGS).map(([l, s]) => [l, Object.keys(s)]))))",
+                       (WEB / 'lobby-i18n.mjs').as_uri()], check=True, capture_output=True, text=True)
+keys = {language: set(names) for language, names in json.loads(keys.stdout).items()}
+used = set(re.findall(r'data-i18n(?:-[a-z-]+)?="([^"]+)"', (WEB / 'index.html').read_text()))
+used |= set(re.findall(r"\bt\('([^']+)'", (WEB / 'lobby.mjs').read_text()))
+for language, names in keys.items():
+    assert not used - names, f'lobby-i18n.mjs {language}: no text for {sorted(used - names)}'
+    assert names == keys['en'], f'lobby-i18n.mjs: {language} and en have different keys: {sorted(names ^ keys["en"])}'
 modules = sorted(WEB.glob('*.mjs')) + sorted((WEB / 'shims').glob('*.mjs'))
 for path in modules:
     subprocess.run([args.node, '--check', str(path)], check=True, capture_output=True)
@@ -47,7 +58,7 @@ if args.built:
     for file in ['engine/game.mjs', 'engine/game.wasm', 'engine/game-build.json']:
         assert (WEB / file).is_file(), file
 report = {'passed': True, 'pages': list(pages), 'javascriptModules': len(modules), 'builtChecked': args.built,
-          'checked': ['local HTML links', 'DOM ID references in native.html and lobby.mjs', 'module import paths', 'JavaScript parse'],
+          'checked': ['local HTML links', 'DOM ID references in native.html and lobby.mjs', 'lobby text keys in every language', 'module import paths', 'JavaScript parse'],
           'not_checked': ['layout', 'pointer events', 'worker startup in browser', 'visual output', 'browser console']}
 (ROOT / 'reports').mkdir(exist_ok=True)
 (ROOT / 'reports/web-static.json').write_text(json.dumps(report, indent=2) + '\n'); print(json.dumps(report))
