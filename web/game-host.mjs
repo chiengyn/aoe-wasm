@@ -18,7 +18,7 @@ export function unlockMedia(media, onError) {
 // with --aspect). media: a MediaHost (native-media.mjs), kept by the page between games. dialogs: the page's
 // message box {box, title, text} and help {dialog, frame, title, close}. space() is the page's room for the
 // game outside full screen, {width, height} in CSS pixels (widescreen). The on* callbacks are optional:
-// onStatus(text), onLog(text, error), onReady(), onEnd({kind, code, reason}), onRoom(event, code), onFullscreen(on).
+// onStatus(text, {key, count, message}: the status by key, see native-worker.mjs), onLog(text, error), onReady(), onEnd({kind, code, reason}), onRoom(event, code), onFullscreen(on).
 export function createGameHost({stage, media, dialogs, space, commandLine = 'NODXCHECK', dataDir = 'game', wide = true,
   onStatus, onLog, onReady, onEnd, onRoom, onFullscreen}) {
   const off = new AbortController(), signal = off.signal;
@@ -50,7 +50,7 @@ export function createGameHost({stage, media, dialogs, space, commandLine = 'NOD
   listen(window, 'resize', () => { clearTimeout(aspectTimer); aspectTimer = setTimeout(sendAspect, 250); });
 
   worker.onmessage = ({data}) => {
-    if (data.type === 'status') onStatus?.(data.text);
+    if (data.type === 'status') onStatus?.(data.text, data);
     else if (data.type === 'media') media.handle(data.m);
     // WinHelp from the game: a keyword topic, the contents, or quit (game/help, made by tools/prepare_native.py).
     else if (data.type === 'help') showHelp(data.command, data.key);
@@ -69,7 +69,7 @@ export function createGameHost({stage, media, dialogs, space, commandLine = 'NOD
       onEnd?.(data);
     }
   };
-  worker.onerror = event => { onStatus?.('Worker error: ' + event.message); console.error(event.message); };
+  worker.onerror = event => { onStatus?.('Worker error: ' + event.message, {key: 'workerError', message: event.message}); console.error(event.message); };
 
   // ---- full screen and mouse capture
   // In full screen the game takes the mouse like the original full-screen game: the pointer is locked to

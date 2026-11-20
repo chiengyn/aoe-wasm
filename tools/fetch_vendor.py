@@ -5,8 +5,9 @@
 - SpessaSynth (Apache-2.0): spessasynth_lib 4.4.3 + spessasynth_core 4.4.5 from npm, checked against the
   registry's sha512 integrity. Only the built bundles and licenses are kept.
 - Cinzel and EB Garamond (SIL Open Font License 1.1), the room lobby's fonts (web/lobby.css): @fontsource
-  5.3.0 from npm, checked against the registry's sha512 integrity. Only the Latin subsets the lobby uses are
-  kept; without them the lobby falls back to the system's serif fonts.
+  5.3.0 from npm, checked against the registry's sha512 integrity. Only the subsets the lobby uses are kept
+  (Latin, and EB Garamond's Vietnamese for the Vietnamese lobby); without them the lobby falls back to the
+  system's serif fonts.
 - GeneralUser GS v2.0.3 soundfont (S. Christian Collins; free to use and redistribute, see its LICENSE.txt)
   from GitHub at a pinned commit, checked by sha256.
 
@@ -32,7 +33,8 @@ PACKAGES = [
     {'name': '@fontsource/eb-garamond', 'version': '5.3.0', 'dir': 'fonts/eb-garamond',
      'integrity': 'sha512-VplwHpB8FLuzl+4G5LDci1b3Z4SghiuXH8XEgaxjnOb5aue5mEt1njmDKeO6iyLeGa73LffU7PC7hzncLRx0ZA==',
      'keep': ['files/eb-garamond-latin-400-normal.woff2', 'files/eb-garamond-latin-400-italic.woff2',
-              'files/eb-garamond-latin-600-normal.woff2', 'LICENSE']},
+              'files/eb-garamond-latin-600-normal.woff2', 'files/eb-garamond-vietnamese-400-normal.woff2',
+              'files/eb-garamond-vietnamese-400-italic.woff2', 'files/eb-garamond-vietnamese-600-normal.woff2', 'LICENSE']},
 ]
 FILES = [
     {'name': 'GeneralUser-GS.sf2', 'target': 'soundfont/GeneralUser-GS.sf2',
