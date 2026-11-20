@@ -1,0 +1,133 @@
+#ifndef AOE1_VICTORY_H
+#define AOE1_VICTORY_H
+
+class RGE_Game_World;
+class RGE_Player;
+class RGE_Static_Object;
+struct RGE_Victory_Entry;
+struct RGE_Victory_Point_Entry;
+class RGE_Victory_Conditions;
+
+struct RGE_Victory_Entry {
+  public:
+    unsigned char command;         // +0x00
+    long obj_type;                 // +0x04
+    RGE_Player* target_player;     // +0x08
+    float x0;                      // +0x0C
+    float y0;                      // +0x10
+    float x1;                      // +0x14
+    float y1;                      // +0x18
+    long number;                   // +0x1C
+    long count;                    // +0x20
+    RGE_Static_Object* this_obj;   // +0x24
+    RGE_Static_Object* target_obj; // +0x28
+    unsigned char victory_group;   // +0x2C
+    unsigned char ally_flag;       // +0x2D
+    unsigned char state;           // +0x2E
+    unsigned char checked_flag;    // +0x2F
+    RGE_Victory_Entry* next;       // +0x30
+};
+
+struct RGE_Victory_Point_Entry {
+  public:
+    unsigned char command;         // +0x00
+    unsigned char state;           // +0x01
+    unsigned char id;              // +0x02
+    unsigned char group;           // +0x03
+    long attribute;                // +0x04
+    long amount;                   // +0x08
+    long points;                   // +0x0C
+    long curr_points;              // +0x10
+    float curr_attribute_amount;   // +0x14
+    RGE_Victory_Point_Entry* next; // +0x18
+};
+
+typedef char rge_victory_entry_size_check[(sizeof(RGE_Victory_Entry) == 0x34) ? 1 : -1];
+typedef char rge_victory_point_entry_size_check[(sizeof(RGE_Victory_Point_Entry) == 0x1C) ? 1 : -1];
+
+class RGE_Victory_Conditions {
+  protected:
+    virtual void handle_point_condition(RGE_Victory_Point_Entry* node);
+    virtual void handle_condition(RGE_Victory_Entry* node);
+    virtual char* condition_description(RGE_Victory_Entry* node);
+
+    void check_for_victory();
+    RGE_Victory_Entry* add(unsigned char v_group, unsigned char alliance);
+    void handle_attribute(RGE_Victory_Entry* node);
+    void handle_bring_area(RGE_Victory_Entry* node);
+    void handle_bring_object(RGE_Victory_Entry* node);
+    void handle_capture(RGE_Victory_Entry* node);
+    void handle_create(RGE_Victory_Entry* node);
+    void handle_create_in_area(RGE_Victory_Entry* node);
+    void handle_destroy(RGE_Victory_Entry* node);
+    void handle_destroy_all(RGE_Victory_Entry* node);
+    void handle_destroy_multiple(RGE_Victory_Entry* node);
+    void handle_destroy_player(RGE_Victory_Entry* node);
+    void handle_explore(RGE_Victory_Entry* node);
+    void sub(RGE_Victory_Entry* entry);
+    RGE_Victory_Point_Entry* add_point(unsigned char id, unsigned char group);
+    void sub_point(RGE_Victory_Point_Entry* entry);
+    void handle_points_attribute_amount(RGE_Victory_Point_Entry* node);
+    void handle_points_attribute_first(RGE_Victory_Point_Entry* node);
+    void handle_points_highest_attribute(RGE_Victory_Point_Entry* node);
+    void handle_points_high_attribute_once(RGE_Victory_Point_Entry* node);
+    void handle_points_high_attribute_amount(RGE_Victory_Point_Entry* node);
+    void handle_victory_points(RGE_Victory_Entry* node);
+
+  public:
+    virtual void save(int outfile);
+
+    RGE_Victory_Conditions(RGE_Player* in_Player);
+    RGE_Victory_Conditions(RGE_Player* in_player, int infile, long* player_id_hash, unsigned char version_control);
+    ~RGE_Victory_Conditions();
+
+    unsigned char add_attributes(unsigned char v_group, long attribute, long count, unsigned char alliance);
+    unsigned char add_bring(unsigned char v_group, RGE_Static_Object* obj, RGE_Static_Object* target);
+    unsigned char add_bring(unsigned char v_group, RGE_Static_Object* obj, float x0, float y0, float x1, float y1);
+    unsigned char add_capture(unsigned char v_group, RGE_Static_Object* obj, unsigned char alliance);
+    unsigned char add_create(unsigned char v_group, long obj_type, long number, unsigned char alliance);
+    unsigned char add_create(
+        unsigned char v_group, long obj_type, long number, float x0, float y0, float x1, float y1, unsigned char alliance
+    );
+    unsigned char add_destroy(unsigned char v_group, RGE_Static_Object* obj);
+    unsigned char add_destroy(unsigned char v_group, long obj_type, long num, RGE_Player* player);
+    unsigned char add_destroy(unsigned char v_group, long obj_type, RGE_Player* player);
+    unsigned char add_destroy(unsigned char v_group, RGE_Player* player);
+    unsigned char add_explore(unsigned char v_group, long count, unsigned char alliance);
+    unsigned char add_points_attribute_amount(unsigned char group, unsigned char id, long attribute, long count, long points);
+    unsigned char add_points_attribute_first(unsigned char group, unsigned char id, long attribute, long count, long points);
+    unsigned char add_points_high_attribute_amount(
+        unsigned char group, unsigned char id, long attribute, long count, long points
+    );
+    unsigned char add_points_high_attribute_once(unsigned char group, unsigned char id, long attribute, long count, long points);
+    unsigned char add_points_highest_attribute(unsigned char group, unsigned char id, long attribute, long count, long points);
+    unsigned char add_victory_points(unsigned char v_group, long count, unsigned char alliance);
+
+    unsigned char condition_info(long condition, char** description, unsigned char& type);
+    long condition_number(long condition);
+    RGE_Victory_Entry* condition_raw_info(long condition);
+    void destroy_all();
+    long get_attribute_id(unsigned char id);
+    long get_victory_points();
+    long get_victory_points_group(unsigned char group);
+    long get_victory_points_id(unsigned char id);
+    unsigned char remove_condition(long condition);
+    unsigned char update();
+    void update_for_object(RGE_Static_Object* obj);
+    unsigned char victory_achieved();
+
+  public:
+    RGE_Victory_Entry* victory_list;             // +0x04
+    long list_num;                               // +0x08
+    RGE_Player* player;                          // +0x0C
+    unsigned char victory;                       // +0x10
+    RGE_Victory_Point_Entry* victory_point_list; // +0x14
+    long point_list_num;                         // +0x18
+    long tot_victory_points;                     // +0x1C
+};
+
+typedef char rge_victory_conditions_size_check[(sizeof(RGE_Victory_Conditions) == 0x20) ? 1 : -1];
+
+typedef RGE_Victory_Point_Entry VP_Entry;
+
+#endif

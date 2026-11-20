@@ -1,0 +1,24 @@
+{
+  "mingw_commit": "41eb042358a52011b35350392130dcdc94a8ead8",
+  "headers": [
+    {
+      "file": "ddraw.h",
+      "url": "https://raw.githubusercontent.com/mingw-w64/mingw-w64/41eb042358a52011b35350392130dcdc94a8ead8/mingw-w64-headers/include/ddraw.h",
+      "sha256": "f5f5a2090f6312146f6e4346c5a69945c96f4e19c2483bddad2b62b606f11e8f",
+      "modified": false
+    },
+    {
+      "file": "dsound.h",
+      "url": "https://raw.githubusercontent.com/mingw-w64/mingw-w64/41eb042358a52011b35350392130dcdc94a8ead8/mingw-w64-headers/include/dsound.h",
+      "sha256": "dd4b92cbeacbd172668e9a6dbfec5f8340cb421af40c31a5cab6b323509732d9",
+      "modified": false
+    },
+    {
+      "file": "_mingw_dxhelper.h",
+      "url": "https://raw.githubusercontent.com/mingw-w64/mingw-w64/41eb042358a52011b35350392130dcdc94a8ead8/mingw-w64-headers/include/_mingw_dxhelper.h",
+      "sha256": "f3145fbc30022e781a9836d72bd3a628a45495bda5b48f90983e9ae7ebe94b82",
+      "modified": false
+    }
+  ],
+  "declarations": "win_constants.h and win_functions.h contain selected platform ABI declarations from MinGW public headers; see retained MinGW notices. No Windows implementation is linked."
+}

@@ -1,0 +1,69 @@
+// This file owns the module's handwritten definition.
+
+#include "../include/colorlog.h"
+#include "../include/program_mode.h"
+#include "../include/basegame.h"
+#include "../include/drawarea.h"
+#include "../include/rge_base_game_global.h"
+
+void __cdecl color_log(unsigned char c1, unsigned char c2, int pos) {
+    if (!do_color_log)
+        return;
+    RGE_Base_Game* game = rge_base_game;
+    if (!game)
+        return;
+    if (game->prog_mode < ProgModeMenu)
+        return;
+
+    TDrawSystem* sys = game->draw_system;
+    if (!sys)
+        return;
+    if (!sys->PrimarySurface)
+        return;
+
+    RECT back_dest;
+    RECT scr_dest;
+    POINT point;
+    DDBLTFX ddbltfx;
+
+    int offset = 2 - pos;
+    offset *= 20;
+    back_dest.left = (sys->DrawArea->Width / 2) + offset;
+    back_dest.right = back_dest.left + 10;
+    back_dest.top = 0;
+    back_dest.bottom = 10;
+    point.x = back_dest.left;
+    point.y = 0;
+
+    if (sys->ScreenMode == 2) {
+        ClientToScreen(sys->Wnd, &point);
+    }
+
+    scr_dest.left = point.x;
+    scr_dest.top = point.y;
+    scr_dest.right = point.x + 10;
+    scr_dest.bottom = point.y + 10;
+
+    ddbltfx.dwSize = 100;
+    ddbltfx.dwFillColor = c1;
+
+    sys->PrimarySurface->Blt(&scr_dest, 0, 0, DDBLT_WAIT | DDBLT_COLORFILL, &ddbltfx);
+
+    ddbltfx.dwSize = 100;
+    ddbltfx.dwFillColor = c1;
+    sys->DrawArea->DrawSurface->Blt(&back_dest, 0, 0, DDBLT_WAIT | DDBLT_COLORFILL, &ddbltfx);
+
+    back_dest.top = back_dest.top + 10;
+    back_dest.bottom = back_dest.bottom + 10;
+    scr_dest.top = scr_dest.top + 10;
+    scr_dest.bottom = scr_dest.bottom + 10;
+
+    ddbltfx.dwSize = 100;
+    ddbltfx.dwFillColor = c2;
+
+    sys->PrimarySurface->Blt(&scr_dest, 0, 0, DDBLT_WAIT | DDBLT_COLORFILL, &ddbltfx);
+
+    ddbltfx.dwSize = 100;
+    ddbltfx.dwFillColor = c2;
+    sys->DrawArea->DrawSurface->Blt(&back_dest, 0, 0, DDBLT_WAIT | DDBLT_COLORFILL, &ddbltfx);
+}

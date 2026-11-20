@@ -1,0 +1,40 @@
+#ifndef AOE1_SCR_MP_H
+#define AOE1_SCR_MP_H
+
+#include "Pnl_scr.h"
+
+class TTextPanel;
+class TEditPanel;
+class TButtonPanel;
+class TListPanel;
+class TScrollBarPanel;
+
+class TribeMPStartupScreen : public TScreenPanel {
+  protected:
+    TTextPanel* title;
+    TTextPanel* inputTitle;
+    TEditPanel* input;
+    TTextPanel* connectionTitle;
+    TButtonPanel* okButton;
+    TButtonPanel* cancelButton;
+    TButtonPanel* help_button;
+    TButtonPanel* close_button;
+    TListPanel* list;
+    TScrollBarPanel* scrollbar;
+    char zone_exec[255];
+    char browser_exec[255];
+
+  public:
+    virtual ~TribeMPStartupScreen();
+    TribeMPStartupScreen();
+    virtual long action(TPanel* fromPanel, long actionIn, unsigned long a1, unsigned long a2);
+    virtual long handle_idle();
+    virtual long handle_user_command(unsigned int wParam, long lParam);
+
+  protected:
+    void fillList();
+};
+
+typedef char scr_mp_startup_screen_size_check[(sizeof(TribeMPStartupScreen) == 0x6A0) ? 1 : -1];
+
+#endif

@@ -1,0 +1,318 @@
+#include "../include/scr_sels.h"
+#include "../include/game_globals.h"
+#include "../include/resource_ids.h"
+#include "../include/panel.h"
+#include "../include/panel_ez.h"
+#include "../include/pnl_btn.h"
+#include "../include/pnl_lst.h"
+#include "../include/Pnl_scbr.h"
+#include "../include/basegame.h"
+#include "../include/tribegam.h"
+#include "../include/scenario.h"
+#include "../include/sceninfo.h"
+#include "../include/tscenaro.h"
+#include "../include/scr_mps.h"
+#include "../include/scr_sing.h"
+#include "../include/rge_base_game_global.h"
+#include <string.h>
+#include <stdio.h>
+
+static const char s_fmt_range[] = "%d - %d";
+static const char s_fmt_num[] = "%d";
+
+TribeSelectScenarioScreen::TribeSelectScenarioScreen() : TScreenPanel("Select Scenario Screen") {
+    char* setup_file;
+    TDrawArea* draw_area;
+    int multiplayer;
+
+    this->init_vars();
+
+    multiplayer = rge_base_game->multiplayerGame();
+    setup_file = "scr3";
+    if (multiplayer == 0)
+        setup_file = "scr2";
+
+    draw_area = rge_base_game->draw_area;
+
+    if (!this->TEasy_Panel::setup(draw_area, 0, setup_file, (rge_base_game->multiplayerGame() != 0) + 0xC384, 1, 0, 0, 0, 0, 1)) {
+        this->error_code = 1;
+        return;
+    }
+
+    this->setup_shadow_area(0);
+    this->set_ideal_size(640, 480);
+
+    if (this->create_text(
+            this, &this->title, STRING_ID_SCENARIO_SELECTION_TITLE, 20, 10, 600, 30, RGE_FONT_COPPERPLATE_21_BOLD, 1, 0, 0
+        )) {
+        this->scenarioListX = 20;
+        this->scenarioListY = 70;
+        this->scenarioListWidth = 600;
+        this->scenarioListHeight = 263;
+
+        if (this->create_list(this, &this->scenarioList, 20, 70, 600, 263, RGE_FONT_STANDARD)) {
+            this->scenarioList->set_second_column_pos(((this->scenarioListWidth - 60) * this->pnl_wid) / this->ideal_width);
+            this->scenarioList->set_text(STRING_ID_SCENARIO_LIST_LOADING);
+
+            if (this->create_auto_scrollbar(&this->scenarioScrollbar, this->scenarioList, 20)) {
+                this->scenarioScrollbar->set_help_info(-1, -1);
+
+                if (this->create_text(
+                        this, &this->scenarioTitle, STRING_ID_SCENARIO_LIST_TITLE, this->scenarioListX, this->scenarioListY - 20,
+                        300, 20, RGE_FONT_COPPERPLATE_12_BOLD_ALT, 0, 0, 0
+                    )) {
+                    if (this->create_text(
+                            this, &this->scenarioPlayersTitle, STRING_ID_SCENARIO_PLAYERS_TITLE,
+                            this->scenarioListWidth - 220 + this->scenarioListX, this->scenarioListY - 20, 200, 20,
+                            RGE_FONT_COPPERPLATE_12_BOLD_ALT, 0, 0, 0
+                        )) {
+                        this->scenarioPlayersTitle->set_alignment(TTextPanel::AlignTop, TTextPanel::AlignRight);
+
+                        this->missionTextX = this->scenarioListX;
+                        this->missionTextY = this->scenarioListHeight + this->scenarioListY + 25;
+                        this->missionTextWidth = this->scenarioListWidth;
+                        this->missionTextHeight = 60;
+
+                        if (this->create_text(
+                                this, &this->missionTitle, STRING_ID_SCENARIO_INSTRUCTIONS_TITLE, this->missionTextX,
+                                this->missionTextY - 20, 400, 20, RGE_FONT_COPPERPLATE_12_BOLD_ALT, 0, 0, 0
+                            )) {
+                            if (this->create_text(
+                                    this, &this->missionText, "", this->missionTextX, this->missionTextY, this->missionTextWidth,
+                                    this->missionTextHeight, RGE_FONT_STANDARD, 0, 0, 1
+                                )) {
+                                this->missionText->set_bevel_info(
+                                    3, this->bevel_color1, this->bevel_color2, this->bevel_color3, this->bevel_color4,
+                                    this->bevel_color5, this->bevel_color6
+                                );
+
+                                if (this->create_auto_scrollbar(&this->missionScrollbar, this->missionText, 20)) {
+                                    this->missionScrollbar->set_help_info(STRING_ID_HELP_CANCEL, -1);
+
+                                    if (this->create_button(
+                                            this, &this->okButton, STRING_ID_BUTTON_OK, 0, 70, 440, 240, 30,
+                                            RGE_FONT_COPPERPLATE_12_BOLD, 0, 0
+                                        )) {
+                                        this->okButton->set_help_info(STRING_ID_HELP_OK, -1);
+
+                                        if (this->create_button(
+                                                this, &this->cancelButton, STRING_ID_BUTTON_CANCEL, 0, 330, 440, 240, 30,
+                                                RGE_FONT_COPPERPLATE_12_BOLD, 0, 0
+                                            )) {
+                                            this->cancelButton->set_help_info(STRING_ID_HELP_CANCEL, -1);
+                                            TButtonPanel* cancel = this->cancelButton;
+                                            cancel->hotkey = VK_ESCAPE;
+                                            cancel->hotkey_shift = 0;
+
+                                            if (this->create_button(
+                                                    this, &this->close_button, STRING_ID_BUTTON_CLOSE, 0, 0, 0, 0, 0, -1, -1, 0
+                                                )) {
+                                                this->close_button->set_active(1);
+                                                this->close_button->set_positioning(
+                                                    TPanel::PositionRightTop, 4, 4, 4, 4, 17, 17, 17, 17, 0, 0, 0, 0
+                                                );
+                                                this->fillScenarios();
+                                                this->scenariosLoaded = 1;
+                                                this->getSettings();
+                                                this->fillMissionText();
+                                                this->activatePanels();
+                                                this->set_curr_child(this->scenarioList);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+void TribeSelectScenarioScreen::init_vars() {
+    last_scenario_line = -1;
+    title = 0;
+    scenarioTitle = 0;
+    scenarioPlayersTitle = 0;
+    scenarioList = 0;
+    scenarioScrollbar = 0;
+    scenarioCount = 0;
+    scenarioMission = 0;
+    scenarioFixed = 0;
+    scenariosLoaded = 0;
+    missionTitle = 0;
+    missionText = 0;
+    missionScrollbar = 0;
+    okButton = 0;
+    cancelButton = 0;
+    close_button = 0;
+}
+
+TribeSelectScenarioScreen::~TribeSelectScenarioScreen() {
+    this->delete_panel((TPanel**) &this->title);
+    this->delete_panel((TPanel**) &this->scenarioTitle);
+    this->delete_panel((TPanel**) &this->scenarioPlayersTitle);
+    this->delete_panel((TPanel**) &this->scenarioList);
+    this->delete_panel((TPanel**) &this->scenarioScrollbar);
+    this->delete_panel((TPanel**) &this->missionTitle);
+    this->delete_panel((TPanel**) &this->missionText);
+    this->delete_panel((TPanel**) &this->missionScrollbar);
+    this->delete_panel((TPanel**) &this->okButton);
+    this->delete_panel((TPanel**) &this->cancelButton);
+    this->delete_panel((TPanel**) &this->close_button);
+}
+
+long TribeSelectScenarioScreen::handle_idle() {
+    if (this->scenariosLoaded == 0) {
+        this->fillScenarios();
+        this->fillMissionText();
+        this->scenariosLoaded = 1;
+        this->activatePanels();
+        this->set_curr_child(this->scenarioList);
+    }
+    if (rge_base_game->input_enabled == 0) {
+        rge_base_game->enable_input();
+    }
+    return TPanel::handle_idle();
+}
+
+long TribeSelectScenarioScreen::action(TPanel* fromPanel, long actionIn, unsigned long a1, unsigned long a2) {
+    if (fromPanel != 0 && this->scenariosLoaded != 0) {
+        if (fromPanel == this->okButton && actionIn == 1) {
+            this->set_curr_child(this->scenarioList);
+            this->sendSettings();
+            rge_base_game->disable_input();
+            new TribeMPSetupScreen;
+            panel_system.setCurrentPanel("MP Setup Screen", 0);
+            panel_system.destroyPanel("Select Scenario Screen");
+            return 1;
+        }
+        if (fromPanel == this->cancelButton && actionIn == 1) {
+            this->set_curr_child(this->scenarioList);
+            rge_base_game->disable_input();
+            new TribeSPMenuScreen;
+            panel_system.setCurrentPanel("Single Player Menu", 0);
+            panel_system.destroyPanel("Select Scenario Screen");
+            return 1;
+        }
+        if (fromPanel == this->close_button && actionIn == 1) {
+            rge_base_game->close();
+            return 1;
+        }
+        if (fromPanel == this->scenarioList) {
+            if (actionIn == 3) {
+                this->action(this->okButton, 1, 0, 0);
+                return 1;
+            }
+            if (actionIn == 1) {
+                this->fillMissionText();
+                this->activatePanels();
+                return 1;
+            }
+        }
+    }
+    return TEasy_Panel::action(fromPanel, actionIn, a1, a2);
+}
+
+void TribeSelectScenarioScreen::fillScenarios() {
+    RGE_Scenario_File_Info* scenario_info_file;
+    char* name;
+    int i;
+    int len;
+    char player_str[20];
+    char file_name[260];
+    char scenario_file[260];
+
+    scenario_info_file = rge_base_game->scenario_info;
+    scenario_info_file->reload_scenarios();
+    this->scenarioList->empty_list();
+    this->scenarioList->sorted = 1;
+    this->scenarioCount = 0;
+    while (1) {
+        name = scenario_info_file->get_scenario_name(this->scenarioCount);
+        if (name == 0)
+            break;
+        len = strlen(name) - 4;
+        strncpy(file_name, name, len);
+        file_name[len] = 0;
+        this->scenarioList->append_line(file_name, this->scenarioCount);
+        this->scenarioCount++;
+    }
+    this->scenarioMission = (char**) calloc(this->scenarioCount, sizeof(char*));
+    this->scenarioFixed = (int*) calloc(this->scenarioCount, sizeof(int));
+    if (this->scenarioMission == 0 || this->scenarioFixed == 0)
+        return;
+    i = 0;
+    if (this->scenarioCount <= 0)
+        return;
+    do {
+        long id = this->scenarioList->get_id(i);
+        TRIBE_Scenario_Header* hdr = (TRIBE_Scenario_Header*) scenario_info_file->get_scenario_info(id);
+        if (hdr != 0) {
+            this->scenarioMission[i] = (char*) calloc(4096, sizeof(char));
+            if (this->scenarioMission[i] != 0 && hdr->description != 0) {
+                strcpy(this->scenarioMission[i], hdr->description);
+            }
+            this->scenarioFixed[i] = hdr->any_sp_victory;
+            int players = hdr->active_player_count;
+            if (players > 0) {
+                if (this->scenarioFixed[i] == 0 && players >= 3) {
+                    sprintf(player_str, s_fmt_range, 2, players);
+                } else {
+                    sprintf(player_str, s_fmt_num, players);
+                }
+                strcpy(scenario_file, this->scenarioList->get_text(i));
+                this->scenarioList->change_line(i, scenario_file, player_str, 0);
+            }
+        }
+        i++;
+    } while (i < this->scenarioCount);
+}
+
+void TribeSelectScenarioScreen::fillMissionText() {
+    long line;
+
+    this->missionText->set_text("");
+    line = this->scenarioList->get_line();
+    if (line >= 0) {
+        this->missionText->set_text(this->scenarioMission[line]);
+    }
+    this->last_scenario_line = line;
+}
+
+void TribeSelectScenarioScreen::getSettings() {
+    this->last_scenario_line = -1;
+
+    char* scenarioName = rge_base_game->scenarioName();
+    long line = this->scenarioList->get_line(scenarioName);
+
+    if (line != -1) {
+        this->scenarioList->scroll_cur_line(1, line, 1);
+        this->last_scenario_line = line - 1;
+    } else {
+        this->scenarioList->scroll_cur_line(1, 0, 1);
+    }
+}
+
+void TribeSelectScenarioScreen::sendSettings(void) {
+    rge_base_game->setScenarioGame(1);
+    rge_base_game->setScenarioName(this->scenarioList->get_text());
+    ((TRIBE_Game*) rge_base_game)->setDeathMatch(0);
+}
+
+void TribeSelectScenarioScreen::activatePanels() {
+    this->missionTitle->set_active(1);
+    this->missionText->set_active(1);
+
+    TPanel* tabList[4];
+    tabList[0] = this->scenarioList;
+    tabList[1] = this->okButton;
+    tabList[2] = this->cancelButton;
+
+    this->set_tab_order(tabList, 3);
+
+    if (this->curr_child == 0 || this->curr_child->active == 0) {
+        this->set_curr_child(this->okButton);
+    }
+}

@@ -1,0 +1,305 @@
+#include "../include/tpnl_pop.h"
+#include "../include/resource_ids.h"
+#include "../include/tribegam.h"
+#include "../include/tplayer.h"
+#include "../include/tworld.h"
+
+TRIBE_Panel_Pop::TRIBE_Panel_Pop(TDrawArea* render_area_in, TPanel* parent_in) {
+    RGE_Font* f;
+
+    this->handle_mouse_input = 0;
+    f = rge_base_game->get_font(RGE_FONT_STANDARD);
+    this->font = f->font;
+    this->color1 = 0xFFFFFF;
+    this->color2 = 0;
+    this->color3 = 0xFFFF;
+    this->player_id = 0;
+    this->world = 0;
+    this->player = 0;
+    this->pop = 0;
+    this->max_pop = 0;
+    this->mode = 0;
+    this->timer = 0.0f;
+    this->ImageBuffer = 0;
+    this->LastIBWidth = -1;
+    this->LastIBHeight = -1;
+    this->ImageTextActive = 0;
+    this->image_clip_region = 0;
+    if (TPanel::setup(render_area_in, parent_in, 0, 0, 0, 0, 0) == 0) {
+        this->error_code = 1;
+    }
+}
+
+TRIBE_Panel_Pop::~TRIBE_Panel_Pop() {
+    TDrawArea* buf;
+
+    if (this->image_clip_region != 0) {
+        DeleteObject(this->image_clip_region);
+        this->image_clip_region = 0;
+    }
+    buf = this->ImageBuffer;
+    if (buf != 0) {
+        delete buf;
+        this->ImageBuffer = 0;
+    }
+}
+
+void TRIBE_Panel_Pop::set_rect(long x_in, long y_in, long wid_in, long hgt_in) {
+    TPanel::set_rect(x_in, y_in, wid_in, hgt_in);
+
+    if (this->pnl_wid > this->LastIBWidth)
+        goto need_realloc;
+    if (this->pnl_hgt > this->LastIBHeight)
+        goto need_realloc;
+    if (x_in + this->LastIBWidth >= this->render_area->Width)
+        goto need_realloc;
+    goto skip_realloc;
+
+need_realloc: {
+    if (this->image_clip_region != 0) {
+        DeleteObject(this->image_clip_region);
+        this->image_clip_region = 0;
+    }
+
+    TDrawArea* buf = this->ImageBuffer;
+    if (buf != 0) {
+        delete buf;
+        this->ImageBuffer = 0;
+    }
+
+    buf = new TDrawArea("time message panel", 0);
+    this->ImageBuffer = buf;
+    buf->Init(this->render_area->DrawSystem, this->pnl_wid, this->pnl_hgt, 0, 0);
+
+    this->LastIBWidth = this->pnl_wid;
+    this->LastIBHeight = this->pnl_hgt;
+
+    this->ImageRect.left = 0;
+    this->ImageRect.top = 0;
+    this->ImageRect.right = this->pnl_wid - 1;
+    this->ImageRect.bottom = this->pnl_hgt - 1;
+
+    this->image_clip_region = CreateRectRgn(0, 0, this->pnl_wid - 1, this->pnl_hgt - 1);
+}
+
+skip_realloc:
+    if (this->ImageBuffer != 0) {
+        this->UsedImageRect = this->ImageRect;
+    } else {
+        this->LastIBWidth = -1;
+        this->LastIBHeight = -1;
+    }
+
+    this->need_restore = 1;
+    this->set_redraw(TPanel::RedrawNormal);
+}
+
+void TRIBE_Panel_Pop::startup() {
+    this->world = (TRIBE_World*) rge_base_game->world;
+    TRIBE_Player* p = (TRIBE_Player*) rge_base_game->get_player();
+    this->player = p;
+
+    this->pop = (int) p->attributes[PLAYER_ATTRIBUTE_POPULATION];
+    this->max_pop = this->pop + (int) p->attributes[PLAYER_ATTRIBUTE_POPULATION_HEADROOM];
+    int limit = (int) p->attributes[PLAYER_ATTRIBUTE_POPULATION_LIMIT];
+    if (this->max_pop > limit) {
+        this->max_pop = limit;
+    }
+}
+
+int TRIBE_Panel_Pop::get_player_id() {
+    if (this->player) {
+        return this->player->id;
+    }
+    return 0;
+}
+
+void TRIBE_Panel_Pop::draw() {
+    char str[256];
+    HGDIOBJ old_font;
+    tagRECT rect;
+    unsigned char changed_mode;
+
+    if (this->render_area == 0)
+        return;
+    if (this->visible == 0)
+        return;
+    if (this->active == 0)
+        return;
+
+    this->display_changed_count++;
+    this->draw_setup(0);
+
+    TRIBE_Player* player = (TRIBE_Player*) rge_base_game->get_player();
+    this->player = player;
+    changed_mode = 0;
+
+    if (this->mode == 0) {
+        if (((TRIBE_Game*) rge_base_game)->queue_is_waiting_on_pop_counter[player->id] > 0) {
+            this->mode = 1;
+            this->timer = 0.0f;
+            changed_mode = 1;
+        }
+    }
+
+    if (this->mode > 0) {
+        this->timer += player->world->world_time_delta_seconds;
+        if (this->timer > 1.0f) {
+            changed_mode = 1;
+            this->timer = 0.0f;
+            if (++this->mode > 2)
+                this->mode = 0;
+        }
+    }
+
+    {
+        int pop = (int) player->attributes[PLAYER_ATTRIBUTE_POPULATION];
+        int max_pop = pop + (int) player->attributes[PLAYER_ATTRIBUTE_POPULATION_HEADROOM];
+        int max_available = (int) player->attributes[PLAYER_ATTRIBUTE_POPULATION_LIMIT];
+        if (max_pop > max_available)
+            max_pop = max_available;
+
+        if (this->ImageBuffer != 0
+            && (changed_mode != 0 || this->need_restore != 0 || this->pop != pop || this->max_pop != max_pop)) {
+            this->pop = pop;
+            this->max_pop = max_pop;
+            this->render_to_image_buffer();
+            if (this->need_restore != 0) {
+                this->need_restore = 0;
+                goto finish;
+            }
+        }
+    }
+
+    if (this->ImageTextActive != 0 && this->ImageBuffer != 0) {
+        this->ImageBuffer->SetTrans(1, 1);
+        this->ImageBuffer->Copy(this->render_area, this->UsedScreenRect.left, this->UsedScreenRect.top, &this->UsedImageRect, 1);
+        this->ImageBuffer->SetTrans(0, 1);
+        goto finish;
+    }
+
+    if (this->render_area->GetDc("tpnl_tim::draw") != 0) {
+        SelectClipRgn(this->render_area->DrawDc, this->clip_rgn);
+        old_font = SelectObject(this->render_area->DrawDc, this->font);
+        SetBkMode(this->render_area->DrawDc, TRANSPARENT);
+        sprintf(str, "%s%ld/%ld", this->get_string(STRING_ID_POPULATION_PREFIX), this->pop, this->max_pop);
+
+        SetTextColor(this->render_area->DrawDc, this->color2);
+
+        long left = this->render_rect.left;
+        long top = this->render_rect.top;
+        long height = this->pnl_hgt;
+        long width = this->pnl_wid;
+        ++left;
+        ++top;
+        width -= 2;
+        height -= 2;
+        SetRect(&rect, left - 1, top - 1, width + left - 2, height + top - 2);
+        DrawTextA(this->render_area->DrawDc, str, -1, &rect, DT_CENTER | DT_SINGLELINE);
+        SetRect(&rect, left - 1, top + 1, width + left - 2, height + top);
+        DrawTextA(this->render_area->DrawDc, str, -1, &rect, DT_CENTER | DT_SINGLELINE);
+        SetRect(&rect, left + 1, top - 1, width + left, height + top - 2);
+        DrawTextA(this->render_area->DrawDc, str, -1, &rect, DT_CENTER | DT_SINGLELINE);
+        SetRect(&rect, left + 1, top + 1, width + left, height + top);
+        DrawTextA(this->render_area->DrawDc, str, -1, &rect, DT_CENTER | DT_SINGLELINE);
+
+        if (this->mode == 1) {
+            SetTextColor(this->ImageBuffer->DrawDc, this->color3);
+        } else {
+            SetTextColor(this->render_area->DrawDc, this->color1);
+        }
+
+        SetRect(&rect, left, top, width + left - 1, height + top - 1);
+        DrawTextA(this->render_area->DrawDc, str, -1, &rect, DT_CENTER | DT_SINGLELINE);
+
+        SelectObject(this->render_area->DrawDc, old_font);
+        SelectClipRgn(this->render_area->DrawDc, 0);
+        this->render_area->ReleaseDc("tpnl_tim::draw");
+    }
+
+finish:
+    this->draw_finish();
+}
+
+void TRIBE_Panel_Pop::get_true_render_rect(RECT& drawRect) {
+    if (this->ImageBuffer && this->render_area && this->visible && this->active) {
+        drawRect = this->UsedScreenRect;
+    } else {
+        drawRect = this->render_rect;
+    }
+}
+
+long TRIBE_Panel_Pop::handle_idle() {
+    TPanel::handle_idle();
+    return 0;
+}
+
+int TRIBE_Panel_Pop::render_to_image_buffer() {
+    tagRECT rect;
+    void* old_font;
+    char str[256];
+
+    if (this->ImageBuffer == 0) {
+        return 0;
+    }
+
+    this->ImageBuffer->PtrClear(&this->ImageRect, 1);
+    if (this->ImageBuffer->GetDc("tpnl_tim::render_to_image_buffer") == 0) {
+        return 0;
+    }
+
+    this->ImageBuffer->SetClipRect(&this->ImageRect);
+    SelectClipRgn(this->ImageBuffer->DrawDc, this->image_clip_region);
+    old_font = SelectObject(this->ImageBuffer->DrawDc, this->font);
+    SetBkMode(this->ImageBuffer->DrawDc, TRANSPARENT);
+
+    sprintf(str, "%s%ld/%ld", this->get_string(STRING_ID_POPULATION_PREFIX), this->pop, this->max_pop);
+    SetTextColor(this->ImageBuffer->DrawDc, this->color2);
+
+    {
+        const int width = this->pnl_wid - 1;
+        const int height = this->pnl_hgt - 1;
+
+        SetRect(&rect, 0, 0, width - 2, height - 2);
+        DrawTextA(this->ImageBuffer->DrawDc, str, -1, &rect, DT_CENTER | DT_SINGLELINE);
+        SetRect(&rect, 0, 2, width - 2, height);
+        DrawTextA(this->ImageBuffer->DrawDc, str, -1, &rect, DT_CENTER | DT_SINGLELINE);
+        SetRect(&rect, 2, 0, width, height - 2);
+        DrawTextA(this->ImageBuffer->DrawDc, str, -1, &rect, DT_CENTER | DT_SINGLELINE);
+        SetRect(&rect, 2, 2, width, height);
+        DrawTextA(this->ImageBuffer->DrawDc, str, -1, &rect, DT_CENTER | DT_SINGLELINE);
+
+        if (this->mode == 1) {
+            SetTextColor(this->ImageBuffer->DrawDc, this->color3);
+        } else {
+            SetTextColor(this->ImageBuffer->DrawDc, this->color1);
+        }
+
+        SetRect(&rect, 1, 1, width - 1, height - 1);
+        DrawTextA(this->ImageBuffer->DrawDc, str, -1, &rect, DT_CENTER | DT_SINGLELINE);
+    }
+
+    SelectObject(this->ImageBuffer->DrawDc, old_font);
+    SelectClipRgn(this->ImageBuffer->DrawDc, 0);
+    this->ImageBuffer->ReleaseDc("tpnl_tim::render_to_image_buffer");
+
+    int width = this->pnl_wid;
+    int screen_left = this->render_rect.left;
+    int height = this->pnl_hgt;
+    this->UsedImageRect.left = 0;
+    this->UsedImageRect.top = 0;
+    int screen_top = this->render_rect.top;
+    --width;
+    this->UsedScreenRect.left = screen_left;
+    --height;
+    screen_left += width;
+    this->UsedScreenRect.top = screen_top;
+    this->UsedImageRect.right = width;
+    this->UsedImageRect.bottom = height;
+    this->UsedScreenRect.right = screen_left;
+    screen_top += height;
+    this->UsedScreenRect.bottom = screen_top;
+    this->ImageTextActive = 1;
+
+    return 1;
+}

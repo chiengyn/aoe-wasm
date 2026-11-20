@@ -1,0 +1,106 @@
+#pragma once
+// ABI declarations selected from MinGW-w64 headers; implemented separately.
+extern "C" {
+UINT mixerGetNumDevs(void);
+MMRESULT mixerOpen(LPHMIXER phmx, UINT uMxId, DWORD_PTR dwCallback, DWORD_PTR dwInstance, DWORD fdwOpen);
+MMRESULT mixerClose(HMIXER hmx);
+extern HRESULT DirectSoundCreate(LPCGUID lpGUID,LPDIRECTSOUND *ppDS,LPUNKNOWN pUnkOuter);
+HDC CreateICA(LPCSTR pszDriver,LPCSTR pszDevice,LPCSTR pszPort,CONST DEVMODEA *pdm);
+HRGN CreateRectRgn(int x1,int y1,int x2,int y2);
+UINT GetNearestPaletteIndex(HPALETTE h,COLORREF color);
+UINT RealizePalette(HDC hdc);
+HPALETTE SelectPalette(HDC hdc,HPALETTE hPal,BOOL bForceBkgd);
+UINT SetPaletteEntries(HPALETTE hpal,UINT iStart,UINT cEntries,CONST PALETTEENTRY *pPalEntries);
+BOOL GetMessageA(LPMSG lpMsg,HWND hWnd,UINT wMsgFilterMin,UINT wMsgFilterMax);
+BOOL TranslateMessage(CONST MSG *lpMsg);
+LRESULT DispatchMessageA(CONST MSG *lpMsg);
+LRESULT SendMessageA(HWND hWnd,UINT Msg,WPARAM wParam,LPARAM lParam);
+LRESULT DefWindowProcA (HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
+VOID PostQuitMessage (int nExitCode);
+ATOM RegisterClassA (CONST WNDCLASSA *lpWndClass);
+HWND CreateWindowExA(DWORD dwExStyle,LPCSTR lpClassName,LPCSTR lpWindowName,DWORD dwStyle,int X,int Y,int nWidth,int nHeight,HWND hWndParent,HMENU hMenu,HINSTANCE hInstance,LPVOID lpParam);
+BOOL DestroyWindow(HWND hWnd);
+BOOL ShowWindow(HWND hWnd,int nCmdShow);
+BOOL MoveWindow (HWND hWnd, int X, int Y, int nWidth, int nHeight, BOOL bRepaint);
+BOOL SetWindowPos (HWND hWnd, HWND hWndInsertAfter, int X, int Y, int cx, int cy, UINT uFlags);
+BOOL IsIconic (HWND hWnd);
+BOOL OpenClipboard(HWND hWndNewOwner);
+BOOL CloseClipboard(VOID);
+LPSTR CharUpperA(LPSTR lpsz);
+HWND SetFocus(HWND hWnd);
+HWND GetFocus(VOID);
+BOOL GetKeyboardState(PBYTE lpKeyState);
+HWND GetCapture(VOID);
+UINT_PTR SetTimer(HWND hWnd,UINT_PTR nIDEvent,UINT uElapse,TIMERPROC lpTimerFunc);
+BOOL KillTimer(HWND hWnd,UINT_PTR uIDEvent);
+int DrawTextExA(HDC hdc,LPSTR lpchText,int cchText,LPRECT lprc,UINT format,LPDRAWTEXTPARAMS lpdtp);
+HWND GetForegroundWindow(VOID);
+BOOL SetForegroundWindow(HWND hWnd);
+HDC GetDC(HWND hWnd);
+int ReleaseDC(HWND hWnd,HDC hDC);
+BOOL GetUpdateRect(HWND hWnd,LPRECT lpRect,BOOL bErase);
+BOOL ValidateRect(HWND hWnd,CONST RECT *lpRect);
+BOOL SetWindowTextA(HWND hWnd,LPCSTR lpString);
+int GetWindowTextA(HWND hWnd,LPSTR lpString,int nMaxCount);
+BOOL GetWindowRect(HWND hWnd,LPRECT lpRect);
+UINT GetCaretBlinkTime(VOID);
+BOOL SetSysColors(int cElements,CONST INT *lpaElements,CONST COLORREF *lpaRgbValues);
+int FillRect(HDC hDC,CONST RECT *lprc,HBRUSH hbr);
+HWND GetParent(HWND hWnd);
+HWND FindWindowA(LPCSTR lpClassName,LPCSTR lpWindowName);
+DWORD GetWindowThreadProcessId(HWND hWnd,LPDWORD lpdwProcessId);
+HWND GetLastActivePopup(HWND hWnd);
+HICON LoadIconA(HINSTANCE hInstance,LPCSTR lpIconName);
+BOOL WinHelpA(HWND hWndMain,LPCSTR lpszHelp,UINT uCommand,ULONG_PTR dwData);
+LPVOID GlobalLock (HGLOBAL hMem);
+BOOL GlobalUnlock (HGLOBAL hMem);
+UINT WinExec (LPCSTR lpCmdLine, UINT uCmdShow);
+int MulDiv (int nNumber, int nNumerator, int nDenominator);
+HMODULE LoadLibraryA (LPCSTR lpLibFileName);
+BOOL GetVolumeInformationA (LPCSTR lpRootPathName, LPSTR lpVolumeNameBuffer, DWORD nVolumeNameSize, LPDWORD lpVolumeSerialNumber, LPDWORD lpMaximumComponentLength, LPDWORD lpFileSystemFlags, LPSTR lpFileSystemNameBuffer, DWORD nFileSystemNameSize);
+LONG RegCloseKey(HKEY hKey);
+LONG RegQueryValueExA(HKEY hKey,LPCSTR lpValueName,LPDWORD lpReserved,LPDWORD lpType,LPBYTE lpData,LPDWORD lpcbData);
+MCIERROR mciSendCommandA(MCIDEVICEID mciId, UINT uMsg, DWORD_PTR dwParam1, DWORD_PTR dwParam2);
+BOOL mciGetErrorStringA(MCIERROR mcierr, LPSTR pszText, UINT cchText);
+HRESULT DirectDrawCreate(GUID*,LPDIRECTDRAW*,IUnknown*);
+HIMC ImmGetContext(HWND);
+BOOL ImmReleaseContext(HWND,HIMC);
+HIMC ImmAssociateContext(HWND,HIMC);
+BOOL ImmSetOpenStatus(HIMC,BOOL);
+BOOL ImmNotifyIME(HIMC,DWORD dwAction,DWORD dwIndex,DWORD dwValue);
+}
+
+#pragma once
+// ABI declarations selected from MinGW-w64 headers; implemented separately.
+extern "C" {
+HDC CreateCompatibleDC(HDC hdc);
+HPALETTE CreatePalette(CONST LOGPALETTE *plpal);
+HPEN CreatePen(int iStyle,int cWidth,COLORREF color);
+UINT GetSystemPaletteEntries(HDC hdc,UINT iStart,UINT cEntries,LPPALETTEENTRY pPalEntries);
+BOOL ResizePalette(HPALETTE hpal,UINT n);
+int StretchDIBits(HDC hdc,int xDest,int yDest,int DestWidth,int DestHeight,int xSrc,int ySrc,int SrcWidth,int SrcHeight,CONST VOID *lpBits,CONST BITMAPINFO *lpbmi,UINT iUsage,DWORD rop);
+HPALETTE CreateHalftonePalette(HDC hdc);
+int GetObjectA(HANDLE h,int c,LPVOID pv);
+LRESULT CallWindowProcA (FARPROC lpPrevWndFunc, HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
+BOOL BringWindowToTop (HWND hWnd);
+HANDLE GetClipboardData(UINT uFormat);
+BOOL IsClipboardFormatAvailable(UINT format);
+HWND GetActiveWindow(VOID);
+LONG GetWindowLongA(HWND hWnd,int nIndex);
+LONG SetWindowLongA(HWND hWnd,int nIndex,LONG dwNewLong);
+DWORD SetClassLongA(HWND hWnd,int nIndex,LONG dwNewLong);
+HCURSOR LoadCursorA(HINSTANCE hInstance,LPCSTR lpCursorName);
+HLOCAL LocalFree (HLOCAL hMem);
+HGLOBAL GlobalHandle (LPCVOID pMem);
+HGLOBAL GlobalReAlloc (HGLOBAL hMem, SIZE_T dwBytes, UINT uFlags);
+HGLOBAL GlobalFree (HGLOBAL hMem);
+UINT _lread (HFILE hFile, LPVOID lpBuffer, UINT uBytes);
+UINT _lwrite (HFILE hFile, LPCCH lpBuffer, UINT uBytes);
+LONG _hread (HFILE hFile, LPVOID lpBuffer, LONG lBytes);
+LONG _hwrite (HFILE hFile, LPCCH lpBuffer, LONG lBytes);
+HFILE _lclose (HFILE hFile);
+LONG _llseek (HFILE hFile, LONG lOffset, int iOrigin);
+HANDLE CreateFileMappingA (HANDLE hFile, LPSECURITY_ATTRIBUTES lpFileMappingAttributes, DWORD flProtect, DWORD dwMaximumSizeHigh, DWORD dwMaximumSizeLow, LPCSTR lpName);
+LONG RegCreateKeyExA(HKEY hKey,LPCSTR lpSubKey,DWORD Reserved,LPSTR lpClass,DWORD dwOptions,REGSAM samDesired,LPSECURITY_ATTRIBUTES lpSecurityAttributes,PHKEY phkResult,LPDWORD lpdwDisposition);
+LONG RegSetValueExA(HKEY hKey,LPCSTR lpValueName,DWORD Reserved,DWORD dwType,CONST BYTE *lpData,DWORD cbData);
+}

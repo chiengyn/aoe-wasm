@@ -1,0 +1,968 @@
+
+#include "../include/tpnl_obj.h"
+#include "../include/asm_draw.h"
+#include "../include/Shape.h"
+#include "../include/com_hand.h"
+#include "../include/m_s_obj.h"
+#include "../include/t_b_obj.h"
+#include "../include/tm_b_obj.h"
+#include "../include/tplayer.h"
+#include "../include/world.h"
+#include "../include/scenario.h"
+#include "../include/action.h"
+#include "../include/act_list.h"
+#include "../include/basegame.h"
+#include "../include/tribegam.h"
+#include "../include/game_globals.h"
+#include "../include/obj_list.h"
+#include "../include/victory.h"
+#include "../include/color.h"
+#include "../include/rge_base_game_global.h"
+#include <new.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+extern "C" {
+__declspec(dllimport) int __stdcall SetBkMode(HDC, int);
+__declspec(dllimport) COLORREF __stdcall SetTextColor(HDC, COLORREF);
+__declspec(dllimport) HGDIOBJ __stdcall SelectObject(HDC, HGDIOBJ);
+__declspec(dllimport) BOOL __stdcall SelectClipRgn(HDC, HRGN);
+__declspec(dllimport) BOOL __stdcall TextOutA(HDC, int, int, LPCSTR, int);
+__declspec(dllimport) BOOL __stdcall SetRect(LPRECT, int, int, int, int);
+__declspec(dllimport) int __stdcall DrawTextA(HDC, LPCSTR, int, LPRECT, UINT);
+}
+
+static short building_facet(const RGE_Master_Static_Object* master) {
+    return ((const TRIBE_Master_Building_Object*) master)->building_facet;
+}
+
+TRIBE_Panel_Object::TRIBE_Panel_Object(
+    TDrawArea* render_area_in, TPanel* parent_panel_in, void* font_in, long font_wid_in, long font_hgt_in, TShape* unit_pics_in,
+    TShape** bldg_pics_in, TRIBE_Player* player_in
+) : TPanel() {
+    this->font = font_in;
+    this->font_wid = font_wid_in;
+    this->font_hgt = font_hgt_in;
+    this->health_pic = 0;
+    this->item_pic = 0;
+    this->unit_pics = unit_pics_in;
+    this->bldg_pics = bldg_pics_in;
+    this->player = 0;
+    this->game_obj = 0;
+    this->idle_time = 0;
+    this->idle_interval = 500;
+    this->mode = 1;
+    this->save_obj_type = 0;
+    this->save_attr_type = -1;
+    this->save_attr_amount = 0.0f;
+    this->save_object_state = RGE_OBJECT_STATE_UNBUILT;
+    this->save_build_pts = 0.0f;
+    this->save_list = 0;
+    this->save_hp = 0.0f;
+    this->save_armor = 0;
+    this->save_pierce_armor = 0;
+    this->save_weapon = 0;
+    this->save_weapon_range = 0.0f;
+    this->save_speed_of_attack = 0.0f;
+    this->save_work_type = 0;
+    this->save_work_target = 0;
+    this->save_progress = 0;
+    this->save_name[0] = 0;
+    this->save_facet = 0;
+    this->save_angle = 0.0f;
+    this->save_los = 0.0f;
+    this->save_pop = 0;
+    this->save_max_pop = 0;
+    this->save_selected_group = 0;
+    this->save_owner = 0;
+    this->save_have_action = 0;
+    this->save_farm_amt = 0;
+
+    for (int i = 0; i < 9; ++i)
+        this->save_score[i] = 0;
+
+    if (this->setup(render_area_in, parent_panel_in, 0, 0, 0, 0, 0) == 0) {
+        this->error_code = 1;
+        return;
+    }
+
+    this->set_player(player_in);
+
+    this->health_pic = new TShape("health.shp", 0xC639);
+    if (this->health_pic != 0 && this->health_pic->is_loaded() == 0) {
+        if (this->health_pic != 0)
+            delete this->health_pic;
+        this->health_pic = 0;
+    }
+
+    this->item_pic = new TShape("itemicon.shp", 0xC62B);
+    if (this->item_pic != 0 && this->item_pic->is_loaded() == 0) {
+        if (this->item_pic != 0)
+            delete this->item_pic;
+        this->item_pic = 0;
+    }
+}
+
+TRIBE_Panel_Object::~TRIBE_Panel_Object() {
+    if (this->health_pic != 0) {
+        delete this->health_pic;
+        this->health_pic = 0;
+    }
+
+    if (this->item_pic != 0) {
+        delete this->item_pic;
+        this->item_pic = 0;
+    }
+}
+
+void TRIBE_Panel_Object::set_player(TRIBE_Player* player_in) {
+    this->player = player_in;
+    if (player_in != 0) {
+        set_object(player_in->selected_obj);
+        return;
+    }
+    set_object(0);
+}
+
+void TRIBE_Panel_Object::set_object(RGE_Static_Object* game_obj_in) {
+    this->game_obj = (TRIBE_Building_Object*) game_obj_in;
+    save_object_info();
+    this->set_redraw(TPanel::RedrawNormal);
+}
+
+void TRIBE_Panel_Object::set_mode(unsigned char mode_in) {
+    this->mode = mode_in;
+    save_object_info();
+    this->set_redraw(TPanel::RedrawNormal);
+}
+
+unsigned char TRIBE_Panel_Object::get_mode() {
+    return this->mode;
+}
+
+void TRIBE_Panel_Object::draw() {
+    float dx;
+    short work_type;
+    TRIBE_Building_Object* bldg_obj;
+    float cur_fval;
+    short progress;
+    short work_target;
+    float orig_fval;
+    short temp;
+    char name[100];
+    char str[100];
+    char work_name[100];
+    short cur_val;
+    short orig_val;
+
+    if (this->render_area == 0 || this->visible == 0 || this->active == 0) {
+        this->need_redraw = 0;
+        return;
+    }
+
+    if (this->mode == 2) {
+        this->draw_score();
+        return;
+    }
+
+    if (this->game_obj == 0) {
+        if (this->parent_panel != 0)
+            this->parent_panel->draw_rect(&this->clip_rect);
+        this->need_redraw = 0;
+        return;
+    }
+
+    this->draw_setup(0);
+    this->render_area->Clear(&this->clip_rect, 0);
+
+    if (this->render_area->Lock("tpnl_obj::draw", 1) != 0) {
+        short shape = this->game_obj->master_obj->button_pict;
+        if (shape != -1) {
+            TShape* picture;
+            if (this->game_obj->master_obj->unit_level == 2) {
+                unsigned char culture = this->game_obj->culture;
+                shape += ((TRIBE_Master_Building_Object*) this->game_obj->master_obj)->building_facet;
+                picture = this->bldg_pics[culture];
+            } else {
+                picture = this->unit_pics;
+            }
+
+            if (this->game_obj->owner->color_table != 0) {
+                ASMSet_Color_Xform((this->game_obj->owner->color_table->id + 1) * 16);
+
+                picture->shape_draw(
+                    this->render_area, this->pnl_x + 3, this->pnl_y + 30, shape, 1, this->game_obj->owner->color_table->table
+                );
+            } else {
+                picture->shape_draw(this->render_area, this->pnl_x + 3, this->pnl_y + 30, shape, 0, 0);
+            }
+        }
+
+        if (this->game_obj->hp > 0.0f && this->health_pic != 0) {
+            float count = (float) this->health_pic->shape_count();
+            short frame =
+                (short) (count
+                         - (float) this->health_pic->shape_count() * this->game_obj->hp / (float) this->game_obj->master_obj->hp);
+            if (frame < 0) {
+                frame = 0;
+            } else if (this->health_pic->shape_count() - 1 < frame) {
+                frame = (short) this->health_pic->shape_count() - 1;
+            }
+
+            this->health_pic->shape_draw(this->render_area, this->pnl_x + 3, this->pnl_y + 84, frame, 0, 0);
+        }
+
+        this->render_area->Unlock("tpnl_obj::draw");
+    }
+
+    if (this->render_area->GetDc("tpnl_obj::draw") != 0) {
+        SetBkMode(this->render_area->DrawDc, TRANSPARENT);
+        SetTextColor(this->render_area->DrawDc, 0x00ffffff);
+        SelectClipRgn(this->render_area->DrawDc, (HRGN) this->clip_rgn);
+        HGDIOBJ old_font = SelectObject(this->render_area->DrawDc, (HGDIOBJ) this->font);
+
+        if (this->game_obj->owner->id != 0) {
+            if (rge_base_game->campaignGame() == 0) {
+                name[0] = 0;
+            } else {
+                strcpy(name, this->game_obj->owner->world->scenario->GetPlayerName(this->game_obj->owner->id - 1));
+            }
+
+            if (name[0] == 0) {
+                rge_base_game->get_string2(RGE_STRING_TYPE_CIVILIZATION, this->game_obj->owner->master_player_id, 0, name, 100);
+            }
+
+            TextOutA(this->render_area->DrawDc, this->pnl_x + 3, this->pnl_y - 2, name, (int) strlen(name));
+        }
+
+        if (this->game_obj->master_obj->string_id < 1) {
+            str[0] = 0;
+        } else {
+            rge_base_game->get_string(this->game_obj->master_obj->string_id, str, 100);
+        }
+
+        if (str[0] == 0)
+            strcpy(str, this->game_obj->master_obj->name);
+
+        if (((TRIBE_Game*) rge_base_game)->show_object_id != 0)
+            sprintf(name, "%d-%s", this->game_obj->id, str);
+        else
+            sprintf(name, "%s", str);
+
+        TextOutA(this->render_area->DrawDc, this->pnl_x + 3, this->pnl_y + 0x0d, name, (int) strlen(name));
+
+        if (this->game_obj->hp > 0.0f) {
+            sprintf(str, "%d/%d", (int) this->game_obj->hp, (int) this->game_obj->master_obj->hp);
+            TextOutA(this->render_area->DrawDc, this->pnl_x + 3, this->pnl_y + 0x5c, str, (int) strlen(str));
+        }
+
+        SelectObject(this->render_area->DrawDc, old_font);
+        SelectClipRgn(this->render_area->DrawDc, 0);
+        this->render_area->ReleaseDc("tpnl_obj::draw");
+    }
+
+    int row = 0;
+    short final_frame;
+    ValueType final_type;
+    int final_value;
+    int final_value2;
+    unsigned char level = this->game_obj->master_obj->unit_level;
+
+    if (level == 3 || level == 9 || level == 4 || level == 5 || level == 6 || level == 7) {
+        if (level == 3 || level == 4) {
+            this->game_obj->get_weapon(cur_val, orig_val);
+            this->draw_item(0, 7, ValueTypeBonus, orig_val, cur_val);
+            row = 1;
+        }
+
+        this->game_obj->get_armor(cur_val, orig_val);
+        if (cur_val > 0 || this->game_obj->master_obj->unit_level == 4 || this->game_obj->master_obj->unit_level == 6) {
+            this->draw_item(row, 8, ValueTypeBonus, orig_val, cur_val);
+            ++row;
+        }
+
+        this->game_obj->get_pierce_armor(cur_val, orig_val);
+        if (cur_val > 0) {
+            this->draw_item(row, 10, ValueTypeBonus, orig_val, cur_val);
+            ++row;
+        }
+
+        if (this->game_obj->master_obj->unit_level == 4 || this->game_obj->master_obj->unit_level == 6) {
+            this->game_obj->get_weapon_range(cur_fval, orig_fval);
+            if (cur_fval > g_trade_display_range_threshold) {
+                this->draw_item(row, 6, ValueTypeBonus, (int) orig_fval, (int) cur_fval);
+                ++row;
+            }
+        }
+
+        if (this->game_obj->master_obj->unit_level == 6) {
+            this->draw_item(
+                row, 9, ValueTypePercent, (int) (this->game_obj->attribute_amount_held - g_tactical_panel_rounding_offset), 0
+            );
+            ++row;
+        }
+
+        if (this->game_obj->owner != this->player) {
+            goto finish;
+        }
+
+        level = this->game_obj->master_obj->unit_level;
+        if (level == 7) {
+            this->draw_item(
+                row, 4, ValueTypeCompare, this->game_obj->objects->number_of_objects, this->game_obj->master_obj->obj_max
+            );
+            this->draw_finish();
+            return;
+        }
+
+        if (level == 9) {
+            if (this->game_obj->attribute_type_held == 0x11 || this->game_obj->attribute_type_held == RGE_RESOURCE_FOOD)
+                cur_val = (short) (int) (this->game_obj->attribute_amount_held - g_tactical_panel_rounding_offset);
+            else
+                cur_val = 0;
+            this->draw_item(row, 2, ValueTypeNumber, cur_val, 0);
+            this->draw_finish();
+            return;
+        }
+
+        if (level == 5) {
+            int item_type;
+            switch (this->game_obj->attribute_type_held) {
+                case 0:
+                case 0x0f:
+                case 0x10:
+                case 0x11:
+                    item_type = 2;
+                    break;
+                case 1:
+                    item_type = 0;
+                    break;
+                case 2:
+                    item_type = 1;
+                    break;
+                case 3:
+                    item_type = 3;
+                    break;
+                case 9:
+                    item_type = 5;
+                    break;
+                default:
+                    goto invalid_item;
+            }
+
+            if (this->game_obj->attribute_amount_held > g_trade_display_zero_amount) {
+                this->draw_item(
+                    row, 3, ValueTypeNumber, (int) (this->game_obj->attribute_amount_held - g_tactical_panel_rounding_offset), 0
+                );
+            } else {
+                this->draw_item(row, item_type, ValueTypeNone, -1, 0);
+            }
+            this->draw_finish();
+            return;
+        }
+
+        if ((int) (this->game_obj->attribute_amount_held - g_tactical_panel_rounding_offset) < 1) {
+            goto finish;
+        }
+
+        int item_type;
+        switch (this->game_obj->attribute_type_held) {
+            case 0:
+            case 0x0f:
+            case 0x10:
+            case 0x11:
+                item_type = 2;
+                break;
+            case 1:
+                item_type = 0;
+                break;
+            case 2:
+                item_type = 1;
+                break;
+            case 3:
+                item_type = 3;
+                break;
+            case 9:
+                item_type = 5;
+                break;
+            default:
+                goto invalid_item;
+        }
+        final_frame = item_type;
+        final_type = ValueTypeNumber;
+        final_value = (int) (this->game_obj->attribute_amount_held - g_tactical_panel_rounding_offset);
+        final_value2 = 0;
+        goto final_item;
+    }
+
+    if (level == 1) {
+        int item_type;
+        switch (this->game_obj->attribute_type_held) {
+            case 0:
+            case 0x0f:
+            case 0x10:
+            case 0x11:
+                item_type = 2;
+                break;
+            case 1:
+                item_type = 0;
+                break;
+            case 2:
+                item_type = 1;
+                break;
+            case 3:
+                item_type = 3;
+                break;
+            case 9:
+                item_type = 5;
+                break;
+            default:
+                goto invalid_item;
+        }
+        this->draw_item(
+            0, item_type, ValueTypeNumber, (int) (this->game_obj->attribute_amount_held - g_tactical_panel_rounding_offset), 0
+        );
+        this->draw_finish();
+        return;
+    }
+
+    if (level == 2 || level == 8) {
+        bldg_obj = this->game_obj;
+        if (this->game_obj->master_obj->master_type == TRIBE_MASTER_TYPE_BUILDING) {
+            bldg_obj->work_status(work_type, work_target, progress, work_name, 100);
+
+            if (work_type != 0x67 && work_type != 0x66 && bldg_obj->production_queue_status(work_target, temp) != 0) {
+                work_type = 0x66;
+                progress = temp;
+            }
+
+            if (this->game_obj->object_state != RGE_OBJECT_STATE_UNBUILT
+                && (this->game_obj->owner != this->player || (work_type != 0x67 && work_type != 0x66))) {
+                bldg_obj->get_weapon(cur_val, orig_val);
+                if (cur_val > 0) {
+                    this->draw_item(0, 7, ValueTypeBonus, orig_val, cur_val);
+                    row = 1;
+                }
+                bldg_obj->get_weapon_range(cur_fval, orig_fval);
+                if ((int) cur_fval > 0) {
+                    this->draw_item(row, 6, ValueTypeBonus, (int) orig_fval, (int) cur_fval);
+                    ++row;
+                }
+            }
+
+            if (this->game_obj->owner == this->player) {
+                if (bldg_obj->object_state == RGE_OBJECT_STATE_UNBUILT) {
+                    progress = bldg_obj->get_construction_progress();
+                    this->draw_item(row, 9, ValueTypePercent, progress, 0);
+                    ++row;
+                } else if (work_type == 0x67 || work_type == 0x66) {
+                    this->draw_item(row, 9, ValueTypePercent, progress, 0);
+                    ++row;
+                } else {
+                    if (this->game_obj->master_obj->id == MASTER_OBJECT_HOUSE) {
+                        int value = (int) (this->player->attributes[PLAYER_ATTRIBUTE_POPULATION_HEADROOM]
+                                           + this->player->attributes[PLAYER_ATTRIBUTE_POPULATION]);
+                        int max_value = (int) this->player->attributes[PLAYER_ATTRIBUTE_POPULATION_LIMIT];
+                        if (max_value < value)
+                            value = max_value;
+                        int current_value = (int) this->player->attributes[PLAYER_ATTRIBUTE_POPULATION];
+                        this->draw_item(row, 4, ValueTypeCompare, current_value, value);
+                        ++row;
+                    }
+
+                    if (this->game_obj->master_obj->id == MASTER_OBJECT_FARM) {
+                        RGE_Action* action = bldg_obj->actions->get_action();
+                        if (action != 0) {
+                            this->draw_item(
+                                row, 2, ValueTypeNumber,
+                                (int) (action->timer + this->game_obj->attribute_amount_held - g_tactical_panel_rounding_offset),
+                                0
+                            );
+                            ++row;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (this->game_obj->object_state != RGE_OBJECT_STATE_UNBUILT && this->game_obj->object_state == RGE_OBJECT_STATE_ACTIVE) {
+            int show_resource = 0;
+            if (this->game_obj->owner == this->player) {
+                if (work_type != 0x67 && work_type != 0x66) {
+                    if (this->game_obj->master_obj->id == MASTER_OBJECT_DOCK_1) {
+                        show_resource = 1;
+                    } else if (this->game_obj->master_obj->id != MASTER_OBJECT_FARM && this->game_obj->attribute_type_held != -1
+                               && (int) this->game_obj->attribute_amount_held > 0) {
+                        show_resource = 1;
+                    }
+                }
+            } else if (this->game_obj->master_obj->id == MASTER_OBJECT_DOCK_1) {
+                show_resource = 1;
+            }
+
+            if (show_resource) {
+                int item_type;
+                switch (this->game_obj->attribute_type_held) {
+                    case 0:
+                    case 0x0f:
+                    case 0x10:
+                    case 0x11:
+                        item_type = 2;
+                        break;
+                    case 1:
+                        item_type = 0;
+                        break;
+                    case 2:
+                        item_type = 1;
+                        break;
+                    case 3:
+                        item_type = 3;
+                        break;
+                    case 9:
+                        item_type = 5;
+                        break;
+                    default:
+                        // an invalid resource type skips this draw.
+                        goto resource_done;
+                }
+
+                if (this->game_obj->master_obj->id == MASTER_OBJECT_DOCK_1) {
+                    this->draw_item(
+                        row, item_type, ValueTypeNumber,
+                        (int) (this->game_obj->owner->attributes[PLAYER_ATTRIBUTE_TRADE_GOODS]
+                               - g_tactical_panel_rounding_offset),
+                        0
+                    );
+                } else {
+                    this->draw_item(
+                        row, item_type, ValueTypeNumber,
+                        (int) (this->game_obj->attribute_amount_held - g_tactical_panel_rounding_offset), 0
+                    );
+                }
+                ++row;
+            }
+        }
+
+    resource_done:
+        if (this->game_obj->master_obj->id == MASTER_OBJECT_DOCK_1 && this->game_obj->owner != this->player) {
+            RGE_Static_Object* nearby = rge_base_game->get_player()->objects->find_by_master_id(
+                0x2d, this->game_obj->world_x, this->game_obj->world_y, 1, RGE_OBJECT_STATE_ACTIVE, this->game_obj
+            );
+
+            if (nearby != 0) {
+                dx = nearby->world_x - this->game_obj->world_x;
+                float dy = nearby->world_y - this->game_obj->world_y;
+                float distance = g_trade_display_distance_scale * ((dx * dx + dy * dy) * g_trade_display_distance_factor);
+                if (this->player->master_player_id == CIVILIZATION_PALMYRAN)
+                    distance += distance;
+                if (!(distance >= g_trade_display_modifier_threshold))
+                    distance = g_trade_display_minimum_modifier;
+                distance *= g_trade_display_distance_scale_percent;
+                if (distance > g_trade_display_max_transfer_amount)
+                    distance = g_trade_display_max_transfer_amount;
+                final_frame = 3;
+                final_type = ValueTypeCompare;
+                final_value = (int) (distance - g_tactical_panel_rounding_offset);
+                final_value2 = 0x14;
+                goto final_item;
+            }
+        }
+    }
+    goto finish;
+
+invalid_item:
+    this->draw_finish();
+    return;
+
+final_item:
+    this->draw_item(row, final_frame, final_type, final_value, final_value2);
+finish:
+    this->draw_finish();
+}
+
+void TRIBE_Panel_Object::draw_score() {
+    char str[100];
+    tagRECT rect;
+    short y;
+    short x;
+    RGE_Player* temp_player;
+    HGDIOBJ old_font;
+    short x_val;
+    int i;
+    int y_pos = 0;
+
+    if (this->render_area == 0 || this->visible == 0 || this->active == 0) {
+        this->need_redraw = 0;
+        return;
+    }
+
+    this->draw_setup(0);
+    this->render_area->Clear(&this->clip_rect, 0);
+
+    if (this->render_area->GetDc("tpnl_obj::draw_score") != 0) {
+        SetBkMode(this->render_area->DrawDc, TRANSPARENT);
+        SetTextColor(this->render_area->DrawDc, 0xFFFFFF);
+        old_font = SelectObject(this->render_area->DrawDc, (HGDIOBJ) this->font);
+
+        x = (short) this->pnl_x + 3;
+        x_val = (short) this->pnl_x + 90;
+        y = (short) this->pnl_y - 1;
+
+        i = 1;
+        do {
+            int player_id = rge_base_game->playerID(i);
+            if (player_id != 0 && player_id < rge_base_game->world->player_num) {
+                temp_player = rge_base_game->world->players[player_id];
+
+                COLORREF color;
+                switch (temp_player->color_table->id) {
+                    case 0:
+                        color = 0xFF0000;
+                        break;
+                    case 1:
+                        color = 0x2139C6;
+                        break;
+                    case 2:
+                        color = 0x00FFFF;
+                        break;
+                    case 3:
+                        color = 0x4F73A3;
+                        break;
+                    case 4:
+                        color = 0x0F77F3;
+                        break;
+                    case 5:
+                        color = 0x00C700;
+                        break;
+                    case 6:
+                        color = 0x7B90A2;
+                        break;
+                    case 7:
+                        color = 0xADAD00;
+                        break;
+                    default:
+                        color = 0xFFFFFF;
+                        break;
+                }
+                SetTextColor(this->render_area->DrawDc, color);
+
+                strcpy(str, comm->GetPlayerName(i));
+                TextOutA(this->render_area->DrawDc, x, y + y_pos, str, (int) strlen(str));
+
+                sprintf(str, "%d", temp_player->victory_conditions->get_victory_points());
+                SetRect(&rect, x_val, y + y_pos, this->pnl_x + this->pnl_wid - 3, y + y_pos + 14);
+                DrawTextA(this->render_area->DrawDc, str, -1, &rect, DT_RIGHT | DT_SINGLELINE);
+                y_pos += 14;
+            }
+            ++i;
+        } while (i < 9);
+
+        SelectObject(this->render_area->DrawDc, old_font);
+        this->render_area->ReleaseDc("tpnl_obj::draw_score");
+    }
+
+    this->draw_finish();
+}
+
+void TRIBE_Panel_Object::draw_item(int row, int pic_index, ValueType val_type, int val1, int val2) {
+    char val_str[20];
+
+    if (this->item_pic != 0 && pic_index != -1) {
+        if (this->render_area->Lock("tpnl_obj::draw_item", 1) != 0) {
+            this->item_pic->shape_draw(this->render_area, this->pnl_x + 54, this->pnl_y + row * 20 + 30, pic_index, 0, 0);
+            this->render_area->Unlock("tpnl_obj::draw_item");
+        }
+    }
+
+    switch (val_type) {
+        case ValueTypeNumber:
+            sprintf(val_str, "%d", val1);
+            break;
+        case ValueTypeBonus:
+            if (val2 > val1)
+                sprintf(val_str, "%d+%d", val1, val2 - val1);
+            else
+                sprintf(val_str, "%d", val1);
+            break;
+        case ValueTypeCompare:
+            sprintf(val_str, "%d/%d", val1, val2);
+            break;
+        case ValueTypePercent:
+            sprintf(val_str, "%d%%", val1);
+            break;
+        default:
+            val_str[0] = 0;
+            break;
+    }
+
+    if (val_str[0] != 0) {
+        void* dc = this->render_area->GetDc("tpnl_obj::draw_item");
+        if (dc != 0) {
+            SetBkMode(this->render_area->DrawDc, TRANSPARENT);
+            SetTextColor(this->render_area->DrawDc, 0xFFFFFF);
+            HGDIOBJ old_font = SelectObject(this->render_area->DrawDc, (HGDIOBJ) this->font);
+
+            TextOutA(this->render_area->DrawDc, this->pnl_x + 88, this->pnl_y + row * 20 + 33, val_str, strlen(val_str));
+
+            SelectObject(this->render_area->DrawDc, old_font);
+            this->render_area->ReleaseDc("tpnl_obj::draw_item");
+        }
+    }
+}
+
+long TRIBE_Panel_Object::handle_idle() {
+    TPanel::handle_idle();
+
+    if (this->active == 0)
+        return 0;
+
+    unsigned long now = debug_timeGetTime("C:\\msdev\\work\\age1_x1\\tpnl_obj.cpp", 892);
+    if (now - this->idle_time < this->idle_interval)
+        return 0;
+
+    this->idle_time = debug_timeGetTime("C:\\msdev\\work\\age1_x1\\tpnl_obj.cpp", 895);
+
+    if (this->mode == 2) {
+        for (int i = 1; i < 9; ++i) {
+            int player_id = rge_base_game->playerID(i);
+            if (player_id != 0
+                && this->save_score[player_id]
+                       != rge_base_game->world->players[player_id]->victory_conditions->get_victory_points()) {
+                if (this->need_redraw == 0)
+                    this->set_redraw(TPanel::RedrawNormal);
+                this->save_object_info();
+                return 0;
+            }
+        }
+        return 0;
+    }
+
+    if ((this->player == 0 && this->game_obj != 0) || (this->player != 0 && this->player->selected_obj != this->game_obj)) {
+        if (this->player != 0)
+            this->set_object(this->player->selected_obj);
+        else
+            this->set_object(0);
+        return 0;
+    }
+
+    int changed = 0;
+    int do_buttons = 0;
+    RGE_Action_Object* object = (RGE_Action_Object*) this->game_obj;
+
+    if (object != 0) {
+        if (object->owner != this->save_owner) {
+            changed = 1;
+            do_buttons = 1;
+        } else if (object->selected_group != this->save_selected_group) {
+            changed = 1;
+            do_buttons = 1;
+        } else {
+            RGE_Master_Static_Object* master = object->master_obj;
+            if (master != this->save_obj_type) {
+                changed = 1;
+                do_buttons = 1;
+            } else {
+                RGE_Object_List* objects = object->objects;
+                short object_count = objects->number_of_objects;
+                if (object_count != this->save_number_of_objects) {
+                    changed = 1;
+                    if (object_count == 0 || this->save_number_of_objects == 0) {
+                        do_buttons = 1;
+                    }
+                } else if (object->attribute_type_held != this->save_attr_type) {
+                    changed = 1;
+                } else if (object->attribute_amount_held != this->save_attr_amount || object->hp != this->save_hp
+                           || objects->list != this->save_list || master->los != this->save_los
+                           || master->id == MASTER_OBJECT_DOCK_1) {
+                    changed = 1;
+                }
+            }
+        }
+
+        if (changed == 0 && object->master_obj->master_type >= TRIBE_MASTER_TYPE_COMBAT
+            && object->master_obj->master_type != TRIBE_MASTER_TYPE_TREE) {
+            short cur_val;
+            short orig_val;
+            float cur_fval;
+            float orig_fval;
+
+            if (object->have_action() != this->save_have_action) {
+                changed = 1;
+                do_buttons = 1;
+            } else {
+                this->game_obj->get_armor(cur_val, orig_val);
+                if (cur_val != this->save_armor) {
+                    changed = 1;
+                } else {
+                    this->game_obj->get_pierce_armor(cur_val, orig_val);
+                    if (cur_val != this->save_pierce_armor) {
+                        changed = 1;
+                    } else {
+                        this->game_obj->get_weapon(cur_val, orig_val);
+                        if (cur_val != this->save_weapon) {
+                            changed = 1;
+                        } else {
+                            this->game_obj->get_weapon_range(cur_fval, orig_fval);
+                            if (cur_fval != this->save_weapon_range) {
+                                changed = 1;
+                            } else {
+                                this->game_obj->get_speed_of_attack(cur_fval, orig_fval);
+                                if (cur_fval != this->save_speed_of_attack) {
+                                    changed = 1;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (changed == 0 || do_buttons == 0) {
+            if (this->game_obj->master_obj->master_type == TRIBE_MASTER_TYPE_BUILDING) {
+                TRIBE_Building_Object* bldg_obj = this->game_obj;
+
+                if (bldg_obj->object_state != this->save_object_state) {
+                    changed = 1;
+                    do_buttons = 1;
+                }
+
+                if (changed == 0 || do_buttons == 0) {
+                    short progress = bldg_obj->get_construction_progress();
+                    if ((float) progress != this->save_build_pts) {
+                        changed = 1;
+                        if ((float) progress > g_building_progress_redraw_threshold)
+                            do_buttons = 1;
+                    }
+                }
+
+                if (changed == 0 || do_buttons == 0) {
+                    short work_type;
+                    short work_target;
+                    short progress;
+                    short temp;
+                    char name[100];
+
+                    bldg_obj->work_status(work_type, work_target, progress, name, 100);
+                    if (work_type != 0x67 && work_type != 0x66 && bldg_obj->production_queue_status(work_target, temp) != 0) {
+                        work_type = 0x66;
+                        progress = temp;
+                    }
+
+                    if (work_type != this->save_work_type || work_target != this->save_work_target
+                        || progress != this->save_progress || strcmp(name, this->save_name) != 0) {
+                        changed = 1;
+                        if (work_type != this->save_work_type || work_target != this->save_work_target
+                            || strcmp(name, this->save_name) != 0) {
+                            do_buttons = 1;
+                        }
+                    }
+                }
+
+                if ((changed == 0 || do_buttons == 0) && this->game_obj->master_obj->id == MASTER_OBJECT_HOUSE) {
+                    if ((int) this->player->attributes[PLAYER_ATTRIBUTE_POPULATION] != this->save_pop
+                        || (int) this->player->attributes[PLAYER_ATTRIBUTE_POPULATION_HEADROOM] != this->save_max_pop) {
+                        changed = 1;
+                    }
+                }
+
+                if ((changed == 0 || do_buttons == 0) && this->game_obj->owner == this->player
+                    && this->game_obj->master_obj->id == MASTER_OBJECT_FARM) {
+                    RGE_Action* action = bldg_obj->actions->get_action();
+                    if (action != 0
+                        && (int) (action->timer + this->game_obj->attribute_amount_held - g_tactical_panel_rounding_offset)
+                               != this->save_farm_amt) {
+                        changed = 1;
+                    }
+                }
+            }
+        }
+    }
+
+    if (changed != 0) {
+        if (this->need_redraw == 0)
+            this->set_redraw(TPanel::RedrawNormal);
+        this->save_object_info();
+        if (do_buttons != 0)
+            this->parent_panel->action(this, 1, 0, 0);
+    }
+
+    return 0;
+}
+
+void TRIBE_Panel_Object::save_object_info() {
+    if (this->mode == 2) {
+        int i = 1;
+        do {
+            int player_id = rge_base_game->playerID(i);
+            if (player_id != 0 && player_id < rge_base_game->world->player_num) {
+                this->save_score[player_id] = rge_base_game->world->players[player_id]->victory_conditions->get_victory_points();
+            }
+            ++i;
+        } while (i < 9);
+        return;
+    }
+
+    RGE_Action_Object* object = (RGE_Action_Object*) this->game_obj;
+    if (object == 0)
+        return;
+
+    short orig_val;
+    short temp;
+    float orig_fval;
+
+    this->save_selected_group = object->selected_group;
+    this->save_obj_type = object->master_obj;
+    this->save_attr_type = object->attribute_type_held;
+    this->save_attr_amount = object->attribute_amount_held;
+    this->save_hp = object->hp;
+    this->save_list = object->objects->list;
+    this->save_number_of_objects = object->objects->number_of_objects;
+    this->save_los = object->master_obj->los;
+    this->save_owner = object->owner;
+
+    if (object->master_obj->master_type >= TRIBE_MASTER_TYPE_COMBAT
+        && object->master_obj->master_type != TRIBE_MASTER_TYPE_TREE) {
+        this->save_have_action = object->have_action();
+        this->game_obj->get_armor(this->save_armor, orig_val);
+        this->game_obj->get_armor(this->save_pierce_armor, orig_val);
+        this->game_obj->get_weapon(this->save_weapon, orig_val);
+        this->game_obj->get_weapon_range(this->save_weapon_range, orig_fval);
+        this->game_obj->get_speed_of_attack(this->save_speed_of_attack, orig_fval);
+    }
+
+    TRIBE_Building_Object* building = (TRIBE_Building_Object*) this->game_obj;
+    if (building->master_obj->master_type == TRIBE_MASTER_TYPE_BUILDING) {
+        this->save_object_state = building->object_state;
+        int construction_progress = building->get_construction_progress();
+        this->save_build_pts = (float) construction_progress;
+        building->work_status(this->save_work_type, this->save_work_target, this->save_progress, this->save_name, 100);
+
+        if (this->save_work_type != 0x67 && this->save_work_type != 0x66
+            && building->production_queue_status(this->save_work_target, temp) != 0) {
+            this->save_work_type = 0x66;
+            this->save_progress = temp;
+        }
+
+        TRIBE_Player* player = this->player;
+        this->save_pop = (int) player->attributes[PLAYER_ATTRIBUTE_POPULATION];
+        this->save_max_pop = (int) player->attributes[PLAYER_ATTRIBUTE_POPULATION_HEADROOM];
+
+        if (this->game_obj->owner == player && this->game_obj->master_obj->id == MASTER_OBJECT_FARM) {
+            RGE_Action* action = building->actions->get_action();
+            if (action != 0) {
+                float action_amount = action->timer;
+                this->save_farm_amt =
+                    (int) (action_amount + this->game_obj->attribute_amount_held - g_tactical_panel_rounding_offset);
+            }
+        }
+    }
+}
+
+long TRIBE_Panel_Object::mouse_left_down_action(long x, long y, int ctrl_key, int shift_key) {
+    return 0;
+}
+
+long TRIBE_Panel_Object::mouse_left_up_action(long x, long y, int ctrl_key, int shift_key) {
+    return 0;
+}

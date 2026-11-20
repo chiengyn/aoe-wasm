@@ -1,0 +1,169 @@
+
+#include "../include/dlg_abt.h"
+#include "../include/game_globals.h"
+#include "../include/pnl_lst.h"
+#include "../include/pnl_btn.h"
+#include "../include/pnl_pic.h"
+#include "../include/scr_cred.h"
+#include "../include/basegame.h"
+#include "../include/registry.h"
+#include "../include/resource_ids.h"
+
+#include <stdio.h>
+#include <string.h>
+
+TribeAboutDialog::TribeAboutDialog(TScreenPanel* parentPanel) : TDialogPanel("About Dialog") {
+    char temp_str[512];
+    char str[4096];
+    tagRECT rect;
+    int modal = 1;
+
+    this->title_text = 0;
+    this->version_text = 0;
+    this->ms_copy_text1 = 0;
+    this->ms_copy_text2 = 0;
+    this->ens_copy_text = 0;
+    this->genie_copy_text = 0;
+    this->pid_label_text = 0;
+    this->pid_text = 0;
+    this->warning_text = 0;
+    this->credits_button = 0;
+    this->close_button = 0;
+    this->circle_p_pic = 0;
+    this->background = 0;
+
+    if (!TDialogPanel::setup(
+            parentPanel->renderArea(), parentPanel, 0x208, 0x19c, parentPanel->get_popup_info_file(),
+            parentPanel->get_popup_info_id(), modal
+        ))
+        return;
+
+    TEasy_Panel::create_text(this, &this->background, "", 10, 10, 500, 350, RGE_FONT_COPPERPLATE_12_BOLD_ALT, 0, 0, 0);
+
+    this->background->set_bevel_info(
+        3, this->bevel_color1, this->bevel_color2, this->bevel_color3, this->bevel_color4, this->bevel_color5, this->bevel_color6
+    );
+
+    TEasy_Panel::create_text(
+        this, &this->title_text, STRING_ID_PRODUCT_TITLE, 20, 20, 480, 20, RGE_FONT_COPPERPLATE_12_BOLD_ALT, 0, 0, 0
+    );
+    TEasy_Panel::create_text(this, &this->version_text, STRING_ID_PRODUCT_VERSION, 20, 40, 480, 20, RGE_FONT_STANDARD, 0, 0, 0);
+
+    TPanel::get_string(STRING_ID_COPYRIGHT_SEPARATOR, temp_str, 512);
+    if (temp_str[0] == '\0') {
+        TEasy_Panel::create_text(
+            this, &this->ms_copy_text1, STRING_ID_COPYRIGHT_PREFIX, 20, 65, 480, 20, RGE_FONT_ARIAL_10_NORMAL_ALT, 0, 0, 0
+        );
+
+        if (this->ms_copy_text1) {
+            if (this->ms_copy_text1->get_text_rect(&rect)) {
+                this->circle_p_pic = new TPicturePanel();
+                if (this->circle_p_pic) {
+                    this->circle_p_pic->setup(
+                        this->render_area, this, (rect.right - this->pnl_x) + 3, 0x42, 0xf, 0xe, "circlep", 0xc4e0, 0, 1
+                    );
+                    TEasy_Panel::create_text(
+                        this, &this->ms_copy_text2, STRING_ID_COPYRIGHT_SUFFIX,
+                        this->circle_p_pic->xPosition() - this->pnl_x + this->circle_p_pic->width(), 65, 480, 20,
+                        RGE_FONT_ARIAL_10_NORMAL_ALT, 0, 0, 0
+                    );
+                }
+            }
+        }
+    } else {
+        strcpy(temp_str, TPanel::get_string(STRING_ID_COPYRIGHT_PREFIX));
+        strcat(temp_str, TPanel::get_string(STRING_ID_COPYRIGHT_SEPARATOR));
+        strcat(temp_str, " ");
+        strcat(temp_str, TPanel::get_string(STRING_ID_COPYRIGHT_SUFFIX));
+        TEasy_Panel::create_text(this, &this->ms_copy_text1, temp_str, 20, 65, 480, 20, RGE_FONT_ARIAL_10_NORMAL_ALT, 0, 0, 0);
+    }
+
+    TEasy_Panel::create_text(
+        this, &this->ens_copy_text, STRING_ID_COPYRIGHT_ENSEMBLE, 20, 85, 480, 20, RGE_FONT_ARIAL_10_NORMAL_ALT, 0, 0, 0
+    );
+    TEasy_Panel::create_text(
+        this, &this->genie_copy_text, STRING_ID_GENIE_ENGINE_COPYRIGHT, 20, 105, 480, 40, RGE_FONT_ARIAL_10_NORMAL_ALT, 0, 0, 1
+    );
+    TEasy_Panel::create_text(
+        this, &this->pid_label_text, STRING_ID_PRODUCT_ID_LABEL, 20, 150, 95, 20, RGE_FONT_ARIAL_10_NORMAL_ALT, 0, 0, 0
+    );
+
+    if (this->pid_label_text) {
+        if (this->pid_label_text->get_text_rect(&rect)) {
+            char* pid_str = Regs->RegGetAscii(0, "PID");
+            if (!pid_str)
+                pid_str = "00000-000-0000000-00000";
+            sprintf(str, "%s", pid_str);
+            TEasy_Panel::create_text(
+                this, &this->pid_text, str, (rect.right - this->pnl_x) + 4, 150, 200, 20, RGE_FONT_STANDARD, 0, 0, 0
+            );
+        }
+    }
+
+    TPanel::get_string(STRING_ID_ABOUT_COPYRIGHT_WARNING, str, 4096);
+    TEasy_Panel::create_text(this, &this->warning_text, str, 20, 175, 480, 220, RGE_FONT_ARIAL_10_NORMAL_ALT, 0, 0, 1);
+
+    TEasy_Panel::create_button(
+        this, &this->credits_button, STRING_ID_ABOUT_CREDITS_BUTTON, 0, 70, 370, 170, 30, RGE_FONT_COPPERPLATE_12_BOLD, 0, 0
+    );
+    TEasy_Panel::create_button(
+        this, &this->close_button, STRING_ID_ABOUT_CLOSE_BUTTON, 0, 280, 370, 170, 30, RGE_FONT_COPPERPLATE_12_BOLD, 0, 0
+    );
+
+    TButtonPanel* close_button = this->close_button;
+    close_button->hotkey = VK_ESCAPE;
+    close_button->hotkey_shift = 0;
+
+    TPanel* tabList[2];
+    tabList[0] = this->credits_button;
+    tabList[1] = this->close_button;
+    TPanel::set_tab_order(tabList, 2);
+    TPanel::set_curr_child(this->credits_button);
+}
+
+TribeAboutDialog::~TribeAboutDialog() {
+    this->delete_panel((TPanel**) &this->title_text);
+    this->delete_panel((TPanel**) &this->version_text);
+    this->delete_panel((TPanel**) &this->ms_copy_text1);
+    this->delete_panel((TPanel**) &this->ms_copy_text2);
+    this->delete_panel((TPanel**) &this->ens_copy_text);
+    this->delete_panel((TPanel**) &this->genie_copy_text);
+    this->delete_panel((TPanel**) &this->pid_label_text);
+    this->delete_panel((TPanel**) &this->pid_text);
+    this->delete_panel((TPanel**) &this->warning_text);
+    this->delete_panel((TPanel**) &this->credits_button);
+    this->delete_panel((TPanel**) &this->close_button);
+    this->delete_panel((TPanel**) &this->circle_p_pic);
+    this->delete_panel((TPanel**) &this->background);
+}
+
+long TribeAboutDialog::action(TPanel* fromPanel, long actionIn, unsigned long a1, unsigned long a2) {
+    if (actionIn == 1) {
+        if (fromPanel == this->close_button) {
+            TPanel* game_screen = panel_system.panel("Game Screen");
+            if (game_screen) {
+                if (rge_base_game->singlePlayerGame() == 1) {
+                    if (!rge_base_game->save_paused)
+                        rge_base_game->set_paused(0, 0);
+                }
+                panel_system.setCurrentPanel("Game Screen", 0);
+                this->set_active(0);
+            }
+            panel_system.destroyPanel("About Dialog");
+            return 1;
+        }
+
+        if (fromPanel == this->credits_button) {
+            TRIBE_Credits_Screen* credits = new TRIBE_Credits_Screen();
+            panel_system.setCurrentPanel("Credits Screen", 0);
+            panel_system.destroyPanel("About Dialog");
+            return 1;
+        }
+    }
+
+    return TEasy_Panel::action(fromPanel, actionIn, a1, a2);
+}
+
+void TribeAboutDialog::draw() {
+    TEasy_Panel::draw();
+}

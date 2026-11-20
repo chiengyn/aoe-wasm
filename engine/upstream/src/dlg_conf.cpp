@@ -1,0 +1,607 @@
+
+#include "../include/dlg_conf.h"
+#include "../include/program_mode.h"
+#include "../include/game_globals.h"
+#include "../include/pathsys.h"
+#include "../include/colorlog.h"
+#include "../include/resource_ids.h"
+#include "../include/panel.h"
+#include "../include/Pnl_txt.h"
+#include "../include/pnl_btn.h"
+#include "../include/pnl_sld.h"
+#include "../include/Pnl_scr.h"
+#include "../include/drawarea.h"
+#include "../include/basegame.h"
+#include "../include/main.h"
+#include "../include/world.h"
+#include "../include/tcommand.h"
+#include "../include/music.h"
+#include "../include/sounddrv.h"
+#include "../include/com_hand.h"
+#include "../include/registry.h"
+#include "../include/rge_base_game_global.h"
+#include "../include/tribegam.h"
+#include <string.h>
+#include <stdio.h>
+
+TribeConfigDialog::TribeConfigDialog(Mode m, TScreenPanel* parentPanel) : TDialogPanel("Config Dialog"), modeValue(m) {
+    TPanel* tabList[10];
+    int i;
+    int string_id;
+    int y;
+    unsigned char val;
+
+    this->title = 0;
+    memset(this->speedTitle, 0, sizeof(this->speedTitle));
+    memset(this->speedButton, 0, sizeof(this->speedButton));
+    memset(this->musicTitle, 0, sizeof(this->musicTitle));
+    this->musicSlider = 0;
+    memset(this->soundTitle, 0, sizeof(this->soundTitle));
+    this->soundSlider = 0;
+    memset(this->scrollSpeedTitle, 0, sizeof(this->scrollSpeedTitle));
+    this->scrollSpeedSlider = 0;
+    memset(this->sizeTitle, 0, sizeof(this->sizeTitle));
+    memset(this->sizeButton, 0, sizeof(this->sizeButton));
+    memset(this->mouseTitle, 0, sizeof(this->mouseTitle));
+    memset(this->mouseButton, 0, sizeof(this->mouseButton));
+    memset(this->rolloverTitle, 0, sizeof(this->rolloverTitle));
+    memset(this->rolloverButton, 0, sizeof(this->rolloverButton));
+    memset(this->pathFindingTitle, 0, sizeof(this->pathFindingTitle));
+    memset(this->pathFindingButton, 0, sizeof(this->pathFindingButton));
+    this->okButton = 0;
+    this->cancelButton = 0;
+
+    if (!this->setup(
+            parentPanel->renderArea(), parentPanel, 600, 390, parentPanel->get_popup_info_file(),
+            parentPanel->get_popup_info_id(), 1
+        ))
+        return;
+
+    if (!this->create_text(
+            this, &this->title, STRING_ID_GAME_SETTINGS_TITLE, 103, 10, 395, 30, RGE_FONT_COPPERPLATE_21_BOLD, 1, 1, 0
+        ))
+        return;
+    if (!this->create_text(this, &this->speedTitle[0], STRING_ID_GAME_SPEED_TITLE, 20, 50, 110, 30, RGE_FONT_STANDARD, 0, 1, 0))
+        return;
+
+    for (i = 0; i < 3; ++i) {
+        switch (i) {
+            case 0:
+                string_id = STRING_ID_GAME_SPEED_NORMAL;
+                break;
+            case 1:
+                string_id = STRING_ID_GAME_SPEED_FAST;
+                break;
+            case 2:
+                string_id = STRING_ID_GAME_SPEED_VERY_FAST;
+                break;
+            default:
+                string_id = STRING_ID_GAME_SPEED_NORMAL;
+                break;
+        }
+        y = i * 35 + 85;
+        if (!this->create_text(this, &this->speedTitle[i + 1], string_id, 55, y, 110, 30, RGE_FONT_STANDARD, 0, 1, 0))
+            return;
+        if (!this->create_radio_button(this, &this->speedButton[i], 20, y, 30, 30, 0, 0))
+            return;
+    }
+
+    for (i = 0; i < 3; ++i)
+        this->speedButton[i]->set_radio_info(this->speedButton, 3);
+
+    if (rge_base_game->prog_mode == ProgModeGameOver) {
+        for (i = 0; i < 3; ++i)
+            this->speedButton[i]->set_disabled(1);
+    }
+
+    float speed;
+    this->gameSpeed = speed = rge_base_game->world->game_speed;
+    // these values lower as the three fixed .rdata float literals.
+    if (speed == 2.0f) {
+        this->speedButton[2]->set_radio_button();
+    } else if (speed == 1.5f) {
+        this->speedButton[1]->set_radio_button();
+    } else if (speed == 1.0f) {
+        this->speedButton[0]->set_radio_button();
+    }
+
+    if (!this->create_text(this, this->musicTitle, STRING_ID_MUSIC_VOLUME_TITLE, 165, 45, 110, 40, RGE_FONT_STANDARD, 0, 1, 1))
+        return;
+    if (!this->create_text(this, &this->musicTitle[1], STRING_ID_AUDIO_VOLUME_HIGH, 190, 85, 110, 20, RGE_FONT_STANDARD, 0, 1, 0))
+        return;
+    if (!this->create_text(this, &this->musicTitle[2], STRING_ID_AUDIO_VOLUME_OFF, 190, 165, 110, 20, RGE_FONT_STANDARD, 0, 1, 0))
+        return;
+    if (!this->create_vert_slider(this, &this->musicSlider, 100, 10, 20, 170, 85, 20, 100))
+        return;
+
+    TMusic_System* music_system = rge_base_game->music_system;
+    if (music_system != 0)
+        this->musicVolume = music_system->volume / -100;
+    else
+        this->musicVolume = 99;
+    this->musicSlider->set_tab_pos(this->musicVolume);
+    this->newMusicVolume = this->musicVolume;
+
+    if (!this->create_text(this, this->soundTitle, STRING_ID_SOUND_VOLUME_TITLE, 305, 45, 110, 40, RGE_FONT_STANDARD, 0, 1, 1))
+        return;
+    if (!this->create_text(this, &this->soundTitle[1], STRING_ID_AUDIO_VOLUME_HIGH, 330, 85, 110, 20, RGE_FONT_STANDARD, 0, 1, 0))
+        return;
+    if (!this->create_text(this, &this->soundTitle[2], STRING_ID_AUDIO_VOLUME_OFF, 330, 165, 110, 20, RGE_FONT_STANDARD, 0, 1, 0))
+        return;
+    if (!this->create_vert_slider(this, &this->soundSlider, 100, 10, 20, 310, 85, 20, 100))
+        return;
+
+    TSound_Driver* sound_system = rge_base_game->sound_system;
+    if (sound_system != 0)
+        this->soundVolume = sound_system->get_volume() / -100;
+    else
+        this->soundVolume = 99;
+    this->soundSlider->set_tab_pos(this->soundVolume);
+    this->newSoundVolume = this->soundVolume;
+
+    if (!this->create_text(
+            this, this->scrollSpeedTitle, STRING_ID_SCROLL_SPEED_TITLE, 445, 45, 110, 40, RGE_FONT_STANDARD, 0, 1, 1
+        ))
+        return;
+    if (!this->create_text(
+            this, &this->scrollSpeedTitle[1], STRING_ID_SCROLL_SPEED_FAST, 470, 85, 110, 20, RGE_FONT_STANDARD, 0, 1, 0
+        ))
+        return;
+    if (!this->create_text(
+            this, &this->scrollSpeedTitle[2], STRING_ID_SCROLL_SPEED_SLOW, 470, 165, 110, 20, RGE_FONT_STANDARD, 0, 1, 0
+        ))
+        return;
+    if (!this->create_vert_slider(this, &this->scrollSpeedSlider, 100, 10, 20, 450, 85, 20, 100))
+        return;
+
+    this->scrollSpeed = rge_base_game->prog_info->mouse_scroll_interval;
+    this->scrollSpeedSlider->set_tab_pos(this->scrollSpeed - 10);
+
+    if (!this->create_text(this, this->sizeTitle, STRING_ID_SCREEN_SIZE_TITLE, 20, 190, 200, 30, RGE_FONT_STANDARD, 0, 1, 0))
+        return;
+    for (i = 0; i < 3; ++i) {
+        switch (i) {
+            case 0:
+                string_id = STRING_ID_SCREEN_SIZE_640X480;
+                break;
+            case 1:
+                string_id = STRING_ID_SCREEN_SIZE_800X600;
+                break;
+            case 2:
+                string_id = STRING_ID_SCREEN_SIZE_1024X768;
+                break;
+        }
+        y = i * 35 + 225;
+        if (!this->create_text(this, &this->sizeTitle[i + 1], string_id, 55, y, 100, 30, RGE_FONT_STANDARD, 0, 1, 0))
+            return;
+        if (!this->create_radio_button(this, &this->sizeButton[i], 20, y, 30, 30, 0, 0))
+            return;
+    }
+    for (i = 0; i < 3; ++i)
+        this->sizeButton[i]->set_radio_info(this->sizeButton, 3);
+
+    // The chosen 4:3 size, not the display's: the game screen may be wider (widescreen, browser port).
+    int screen_width = RGE_Base_Game::menu_screen_width() ? RGE_Base_Game::menu_screen_width() : this->render_area->DrawSystem->ScreenWidth;
+    switch (screen_width) {
+        case 640:
+            this->sizeButton[0]->set_radio_button();
+            break;
+        case 800:
+            this->sizeButton[1]->set_radio_button();
+            break;
+        case 1024:
+            this->sizeButton[2]->set_radio_button();
+            break;
+    }
+
+    if (!this->render_area->DrawSystem->IsModeAvail(640, 0, 8))
+        this->sizeButton[0]->set_disabled(1);
+    if (!this->render_area->DrawSystem->IsModeAvail(800, 0, 8))
+        this->sizeButton[1]->set_disabled(1);
+    if (!this->render_area->DrawSystem->IsModeAvail(1024, 0, 8))
+        this->sizeButton[2]->set_disabled(1);
+
+    if (!this->create_text(
+            this, this->mouseTitle, STRING_ID_MOUSE_INTERFACE_TITLE, 170, 190, 210, 30, RGE_FONT_STANDARD, 0, 1, 0
+        ))
+        return;
+    for (i = 0; i < 2; ++i) {
+        if (i == 0) {
+            if (!this->create_text(
+                    this, &this->mouseTitle[i + 1], STRING_ID_MOUSE_INTERFACE_TWO_BUTTONS, 205, 225, 120, 30, RGE_FONT_STANDARD,
+                    0, 1, 0
+                ))
+                return;
+        } else {
+            if (!this->create_text(
+                    this, &this->mouseTitle[i + 1], STRING_ID_MOUSE_INTERFACE_ONE_BUTTON, 205, i * 35 + 225, 120, 30,
+                    RGE_FONT_STANDARD, 0, 1, 0
+                ))
+                return;
+        }
+        if (!this->create_radio_button(this, &this->mouseButton[i], 170, i * 35 + 225, 30, 30, 0, 0))
+            return;
+    }
+    for (i = 0; i < 2; ++i)
+        this->mouseButton[i]->set_radio_info(this->mouseButton, 2);
+    if (rge_base_game->prog_info->interface_style == 2)
+        this->mouseButton[0]->set_radio_button();
+    else
+        this->mouseButton[1]->set_radio_button();
+
+    if (!this->create_text(
+            this, this->rolloverTitle, STRING_ID_ROLLOVER_HELP_TITLE, 330, 190, 210, 30, RGE_FONT_STANDARD, 0, 1, 0
+        ))
+        return;
+    for (i = 0; i < 2; ++i) {
+        if (i == 0) {
+            if (!this->create_text(
+                    this, &this->rolloverTitle[i + 1], STRING_ID_ROLLOVER_HELP_ON, 365, 225, 120, 30, RGE_FONT_STANDARD, 0, 1, 0
+                ))
+                return;
+        } else {
+            if (!this->create_text(
+                    this, &this->rolloverTitle[i + 1], STRING_ID_ROLLOVER_HELP_OFF, 365, i * 35 + 225, 120, 30, RGE_FONT_STANDARD,
+                    0, 1, 0
+                ))
+                return;
+        }
+        if (!this->create_radio_button(this, &this->rolloverButton[i], 330, i * 35 + 225, 30, 30, 0, 0))
+            return;
+    }
+    for (i = 0; i < 2; ++i)
+        this->rolloverButton[i]->set_radio_info(this->rolloverButton, 2);
+    if (rge_base_game->rollover != 0)
+        this->rolloverButton[0]->set_radio_button();
+    else
+        this->rolloverButton[1]->set_radio_button();
+
+    if (!this->create_text(
+            this, this->pathFindingTitle, STRING_ID_PATH_FINDING_TITLE, 460, 190, 210, 30, RGE_FONT_STANDARD, 0, 1, 0
+        ))
+        return;
+    for (i = 0; i < 3; ++i) {
+        string_id = STRING_ID_PATH_FINDING_OPTION_BASE + i;
+        if (!this->create_text(
+                this, &this->pathFindingTitle[i + 1], string_id, 495, i * 35 + 225, 120, 30, RGE_FONT_STANDARD, 0, 1, 0
+            ))
+            return;
+        if (!this->create_radio_button(this, &this->pathFindingButton[i], 460, i * 35 + 225, 30, 30, 0, 0))
+            return;
+        if (rge_base_game->multiplayerGame())
+            this->pathFindingButton[i]->set_disabled(1);
+    }
+    for (i = 0; i < 3; ++i)
+        this->pathFindingButton[i]->set_radio_info(this->pathFindingButton, 3);
+
+    if (rge_base_game->multiplayerGame())
+        val = rge_base_game->mpPathFinding();
+    else
+        val = rge_base_game->pathFinding();
+    if (val <= RGE_PATH_FINDING_HIGH)
+        this->pathFindingButton[val]->set_radio_button();
+
+    if (!this->create_button(
+            this, &this->okButton, STRING_ID_BUTTON_OK, 0, 120, 345, 170, 30, RGE_FONT_COPPERPLATE_12_BOLD, 0, 0
+        ))
+        return;
+    if (!this->create_button(
+            this, &this->cancelButton, STRING_ID_BUTTON_CANCEL, 0, 310, 345, 170, 30, RGE_FONT_COPPERPLATE_12_BOLD, 0, 0
+        ))
+        return;
+
+    TButtonPanel* cancel_button = this->cancelButton;
+    cancel_button->hotkey = VK_ESCAPE;
+    cancel_button->hotkey_shift = 0;
+    this->set_curr_child(this->okButton);
+    tabList[0] = this->okButton;
+    tabList[1] = this->cancelButton;
+    this->set_tab_order(tabList, 2);
+}
+
+TribeConfigDialog::~TribeConfigDialog() {
+    this->delete_panel((TPanel**) &this->title);
+
+    TTextPanel** text_panels;
+    TButtonPanel** button_panels;
+    int count;
+
+    text_panels = this->speedTitle;
+    count = 4;
+    do {
+        this->delete_panel((TPanel**) text_panels);
+        ++text_panels;
+        --count;
+    } while (count != 0);
+
+    button_panels = this->speedButton;
+    count = 3;
+    do {
+        this->delete_panel((TPanel**) button_panels);
+        ++button_panels;
+        --count;
+    } while (count != 0);
+
+    text_panels = this->musicTitle;
+    count = 3;
+    do {
+        this->delete_panel((TPanel**) text_panels);
+        ++text_panels;
+        --count;
+    } while (count != 0);
+
+    this->delete_panel((TPanel**) &this->musicSlider);
+
+    text_panels = this->soundTitle;
+    count = 3;
+    do {
+        this->delete_panel((TPanel**) text_panels);
+        ++text_panels;
+        --count;
+    } while (count != 0);
+
+    this->delete_panel((TPanel**) &this->soundSlider);
+
+    text_panels = this->scrollSpeedTitle;
+    count = 3;
+    do {
+        this->delete_panel((TPanel**) text_panels);
+        ++text_panels;
+        --count;
+    } while (count != 0);
+
+    this->delete_panel((TPanel**) &this->scrollSpeedSlider);
+
+    text_panels = this->sizeTitle;
+    count = 4;
+    do {
+        this->delete_panel((TPanel**) text_panels);
+        ++text_panels;
+        --count;
+    } while (count != 0);
+
+    button_panels = this->sizeButton;
+    count = 3;
+    do {
+        this->delete_panel((TPanel**) button_panels);
+        ++button_panels;
+        --count;
+    } while (count != 0);
+
+    text_panels = this->mouseTitle;
+    count = 3;
+    do {
+        this->delete_panel((TPanel**) text_panels);
+        ++text_panels;
+        --count;
+    } while (count != 0);
+
+    button_panels = this->mouseButton;
+    count = 2;
+    do {
+        this->delete_panel((TPanel**) button_panels);
+        ++button_panels;
+        --count;
+    } while (count != 0);
+
+    text_panels = this->rolloverTitle;
+    count = 3;
+    do {
+        this->delete_panel((TPanel**) text_panels);
+        ++text_panels;
+        --count;
+    } while (count != 0);
+
+    button_panels = this->rolloverButton;
+    count = 2;
+    do {
+        this->delete_panel((TPanel**) button_panels);
+        ++button_panels;
+        --count;
+    } while (count != 0);
+
+    text_panels = this->pathFindingTitle;
+    count = 4;
+    do {
+        this->delete_panel((TPanel**) text_panels);
+        ++text_panels;
+        --count;
+    } while (count != 0);
+
+    button_panels = this->pathFindingButton;
+    count = 3;
+    do {
+        this->delete_panel((TPanel**) button_panels);
+        ++button_panels;
+        --count;
+    } while (count != 0);
+
+    this->delete_panel((TPanel**) &this->okButton);
+    this->delete_panel((TPanel**) &this->cancelButton);
+}
+
+long TribeConfigDialog::action(TPanel* fromPanel, long actionIn, unsigned long a1, unsigned long a2) {
+    if (fromPanel != 0) {
+        if (fromPanel == this->okButton && actionIn == 1) {
+            if (this->modeValue == InGame) {
+                if (rge_base_game->singlePlayerGame() == 1 && rge_base_game->save_paused == 0) {
+                    rge_base_game->set_paused(0, 0);
+                }
+
+                if (this->mouseButton[0]->get_state() != 0)
+                    rge_base_game->prog_info->interface_style = 2;
+                else
+                    rge_base_game->prog_info->interface_style = 1;
+                rge_base_game->set_interface_messages();
+
+                if (this->rolloverButton[0]->get_state() != 0)
+                    rge_base_game->rollover = 1;
+                else
+                    rge_base_game->rollover = 0;
+
+                if (rge_base_game->singlePlayerGame() != 0) {
+                    if (this->pathFindingButton[0]->get_state() != 0) {
+                        rge_base_game->setPathFinding(RGE_PATH_FINDING_DEFAULT);
+                        numberPathingIterations = 2500;
+                    } else if (this->pathFindingButton[1]->get_state() != 0) {
+                        rge_base_game->setPathFinding(RGE_PATH_FINDING_MEDIUM);
+                        numberPathingIterations = 5000;
+                    } else if (this->pathFindingButton[2]->get_state() != 0) {
+                        rge_base_game->setPathFinding(RGE_PATH_FINDING_HIGH);
+                        numberPathingIterations = 7500;
+                    }
+                }
+
+                if (rge_base_game->prog_mode != ProgModeGameOver) {
+                    float new_speed = 0.0f;
+
+                    if (this->speedButton[0]->get_state() != 0)
+                        new_speed = 1.0f;
+                    else if (this->speedButton[1]->get_state() != 0)
+                        new_speed = 1.5f;
+                    else if (this->speedButton[2]->get_state() != 0)
+                        new_speed = 2.0f;
+
+                    if (allow_user_commands != 0 && new_speed != 0.0f && new_speed != this->gameSpeed) {
+                        if (rge_base_game->multiplayerGame() != 0) {
+                            char msg[256];
+                            sprintf(msg, this->get_string(STRING_ID_GAME_SPEED_CHANGED), comm->GetPlayerName(comm->WhoAmI()));
+                            comm->SendChatMsgAll(msg);
+                        }
+
+                        ((TRIBE_Command*) rge_base_game->world->commands)->command_game_speed(new_speed);
+                        if (rge_base_game->singlePlayerGame() != 0)
+                            rge_base_game->set_game_speed(new_speed);
+                    }
+                }
+
+                if (this->newMusicVolume != this->musicVolume) {
+                    if (this->newMusicVolume >= 99) {
+                        if (rge_base_game->prog_info->use_music != 0) {
+                            rge_base_game->prog_info->use_music = 0;
+                            rge_base_game->shutdown_music_system();
+                        }
+                    } else if (rge_base_game->prog_info->use_music == 0) {
+                        rge_base_game->prog_info->use_music = 1;
+                        Regs->RegSetInt(1, "Music Volume", this->newMusicVolume * 100);
+                        rge_base_game->setup_music_system();
+
+                        TMusic_System* music_system = rge_base_game->music_system;
+                        if (music_system != 0) {
+                            if (music_system->music_type == 1) {
+                                music_system->play_tracks(5, music_system->track_count, 1, 0, 0);
+                            } else if (music_system->music_type == 2) {
+                                music_system->play_tracks(1, music_system->track_count, 1, 0, 0);
+                            }
+                        }
+                    }
+
+                    if (rge_base_game->sound_system != 0) {
+                        rge_base_game->sound_system->set_volume(this->newSoundVolume * -100, 1);
+                    }
+                }
+
+                long width;
+                long height;
+                if (this->sizeButton[0]->get_state() != 0) {
+                    width = 640;
+                    height = 480;
+                } else if (this->sizeButton[1]->get_state() != 0) {
+                    width = 800;
+                    height = 600;
+                } else if (this->sizeButton[2]->get_state() != 0) {
+                    width = 1024;
+                    height = 768;
+                } else {
+                    width = 640;
+                    height = 480;
+                }
+
+                // Widescreen (browser port): the choice is the menu size; the game screen keeps its height, widened.
+                RGE_Base_Game::set_menu_screen_size(width, height);
+                RGE_Base_Game::game_screen_size(&width, &height);
+
+                panel_system.setCurrentPanel("Game Screen", 0);
+                this->set_active(0);
+                this->prepare_for_close();
+                if (do_color_log == 0)
+                    rge_base_game->set_screen_size(width, height);
+
+                panel_system.destroyPanel("Config Dialog");
+                return 1;
+            }
+        } else {
+            if (fromPanel == this->speedButton[0] && actionIn == 1)
+                return 1;
+            if (fromPanel == this->speedButton[1] && actionIn == 1)
+                return 1;
+            if (fromPanel == this->speedButton[2] && actionIn == 1)
+                return 1;
+
+            if (fromPanel == this->sizeButton[0])
+                return 1;
+            if (fromPanel == this->sizeButton[1])
+                return 1;
+            if (fromPanel == this->sizeButton[2])
+                return 1;
+
+            if (fromPanel == this->musicSlider && actionIn == 4) {
+                this->newMusicVolume = a1;
+                if (rge_base_game->music_system != 0) {
+                    rge_base_game->music_system->set_volume(this->newMusicVolume * -100, 1);
+                    if (rge_base_game->sound_system != 0) {
+                        rge_base_game->sound_system->set_volume(this->newSoundVolume * -100, 1);
+                    }
+                }
+                return 1;
+            }
+
+            if (fromPanel == this->soundSlider && actionIn == 4) {
+                this->newSoundVolume = a1;
+                if (rge_base_game->sound_system != 0) {
+                    rge_base_game->sound_system->set_volume(this->newSoundVolume * -100, 1);
+                }
+                return 1;
+            }
+
+            if (fromPanel == this->scrollSpeedSlider && actionIn == 4) {
+                rge_base_game->prog_info->mouse_scroll_interval = a1 + 10;
+                rge_base_game->prog_info->key_scroll_interval = a1 + 10;
+                return TPanel::action(fromPanel, actionIn, a1, a2);
+            }
+
+            if (fromPanel == this->cancelButton && actionIn == 1) {
+                if (rge_base_game->music_system != 0) {
+                    rge_base_game->music_system->set_volume(this->musicVolume * -100, 1);
+                }
+                if (rge_base_game->sound_system != 0) {
+                    rge_base_game->sound_system->set_volume(this->soundVolume * -100, 1);
+                }
+
+                rge_base_game->prog_info->mouse_scroll_interval = this->scrollSpeed;
+                rge_base_game->prog_info->key_scroll_interval = this->scrollSpeed;
+
+                if (this->modeValue == InGame) {
+                    if (rge_base_game->singlePlayerGame() == 1 && rge_base_game->save_paused == 0) {
+                        rge_base_game->set_paused(0, 0);
+                    }
+                    panel_system.setCurrentPanel("Game Screen", 0);
+                    this->set_active(0);
+                } else {
+                    panel_system.setCurrentPanel("Main Menu", 0);
+                }
+
+                panel_system.destroyPanel("Config Dialog");
+                return 1;
+            }
+        }
+
+        if (fromPanel == this->okButton && actionIn == 1) {
+            panel_system.setCurrentPanel("Main Menu", 0);
+            panel_system.destroyPanel("Config Dialog");
+            return 1;
+        }
+    }
+
+    return TPanel::action(fromPanel, actionIn, a1, a2);
+}

@@ -1,0 +1,433 @@
+#pragma once
+// Only globals with one conservative inferred type are auto-emitted here.
+
+#include <windows.h>
+#include <stdio.h>
+
+#define RGE_DIFFICULTY_HARDEST  0
+#define RGE_DIFFICULTY_HARD     1
+#define RGE_DIFFICULTY_MODERATE 2
+#define RGE_DIFFICULTY_EASY     3
+#define RGE_DIFFICULTY_EASIEST  4
+
+class RGE_Base_Game;
+class RGE_Static_Object;
+class TDrawArea;
+class Visible_Unit_Manager;
+struct LOSTBL;
+class VC_LOG;
+struct VISIBLE_UNIT_REC;
+struct IDirectPlay3;
+class TDebuggingLog;
+class DriveInformation;
+class TChat;
+class TCommunications_Handler;
+class TRegistry;
+class TSound_Driver;
+class PathingSystem;
+
+// Shared action and UnitAIModule update state.
+extern FILE* actionFile;
+extern int taskedThisUpdate;
+extern int searchedThisUpdate;
+extern int numberVisibleObjects;
+extern int numberDifferentPlayerObjectsVisible;
+
+// global names, storage addresses, and scalar types.
+extern FILE* commonHistoryLogFile;
+extern int specificAIPlayerToLog;
+
+extern short visible_combats;
+extern FILE* logStatusFile;
+extern unsigned long lastStatusLogTime;
+
+// not as source-local aliases.
+extern RGE_Static_Object** VIS_UNIT_objectsValue;
+extern VISIBLE_UNIT_REC* VisibleUnitList[5];
+extern int VisibleUnitList_Size[5];
+extern Visible_Unit_Manager* VisibleUnitManager;
+extern unsigned long* unified_map_offsets[1024];
+extern LOSTBL* NormalLOS[17];
+extern LOSTBL* SquareLOS[17];
+extern int Map_Update_Suppresion;
+extern int VCALL_LOG_HEAD;
+extern int VCALL_LOG_TAIL;
+extern VC_LOG VCALL_LOG[1024];
+extern PathingSystem pathSystem;
+extern PathingSystem aiPathSystem;
+
+struct COMM_DEBUG_PING {
+    unsigned char Command;
+    unsigned char Reserved[3];
+    unsigned long Timestamp;
+    unsigned long Turn;
+};
+
+extern unsigned char comm_rate_initialized;
+extern unsigned long comm_last_rate_update;
+extern unsigned long comm_last_rx_bytes;
+extern unsigned long comm_last_tx_bytes;
+extern unsigned long comm_last_dump_time;
+extern unsigned long comm_last_sent_time;
+extern char* comm_receive_message;
+extern unsigned long comm_receive_base;
+extern unsigned long comm_drop_count;
+extern unsigned long comm_highest_acknowledged_turn;
+extern COMM_DEBUG_PING comm_debug_ping;
+extern COMM_DEBUG_PING comm_ping_packet;
+extern unsigned char guid_format_positions[20];
+extern unsigned short guid_hex_digits[16];
+extern char comm_enum_buffer[0x100];
+extern char comm_info_buffers[0x700];
+extern char g_status_buffer[0x20];
+extern char ready_player_buffer[64];
+
+struct TRIBE_Cliff_Higher_Check_Record {
+    float from_angle1;
+    float to_angle1;
+    float from_angle2;
+    float to_angle2;
+    float line_x1;
+    float line_y1;
+    float line_x2;
+    float line_y2;
+};
+
+typedef char tribe_cliff_higher_check_record_size_check[(sizeof(TRIBE_Cliff_Higher_Check_Record) == 0x20) ? 1 : -1];
+
+extern long world_update_counter;
+extern int computerPlayerSetup[13];
+extern FILE* DVlogf;
+extern int debug_random_on;
+extern int global_save_debug_random_on1;
+extern int global_save_debug_random_on2;
+extern int allowAIToCheat;
+void __cdecl debug_srand(char*, int, unsigned int);
+extern char s_empty_string[];
+extern int debug_timeGetTime_on;
+extern int debug_timeGetTime_cnt;
+extern int debug_timeGetTime_time;
+extern int all_cp;
+extern int logStatusOn;
+extern int do_fixed_update;
+extern long fixed_update_time;
+extern float save_game_version;
+extern int allow_user_commands;
+
+extern unsigned char die_die_die;
+extern int useComputerPlayers;
+
+// Main and BaseGame process storage.
+extern void* AppInst;
+extern "C" GUID TRIBE_GUID;
+extern "C" GUID ZONE_GUID;
+
+// BaseGame process globals. The executable stores these values at the named
+// addresses. The types follow their direct uses in BaseGame and its clients.
+extern HMODULE StringTable;
+extern TRegistry* Regs;
+extern TSound_Driver* sound_driver;
+extern TChat* chat;
+extern TCommunications_Handler* comm;
+extern DriveInformation* driveInfo;
+extern HWND AppWnd;
+extern RGE_Base_Game* rge_base_game;
+extern int system_ignore_size_messages;
+extern int basegame_is_active;
+extern int MouseCursorInChildContol;
+extern HWND save_active_wnd;
+extern int do_restore_palette;
+extern unsigned long restore_palette_timer;
+extern int restore_mouse_after_paint;
+extern "C" HCURSOR last_mouse_cursor;
+
+extern float g_attack_radius_distance_adjustment;
+extern float g_gather_positive_amount_threshold;
+extern double g_gather_dropoff_distance_threshold;
+extern float g_missile_half_time_factor;
+extern double g_missile_positive_value_threshold;
+extern float g_missile_target_speed_normalization_limit;
+extern float g_missile_minimum_speed;
+extern float g_transport_lower_coordinate_adjustment;
+extern float g_transport_upper_coordinate_adjustment;
+extern float g_unit_ai_distance_priority_scale;
+extern float g_unit_ai_reaction_distance_scale;
+extern float g_unit_ai_zero_float;
+extern float g_unit_ai_map_boundary_adjustment;
+extern float g_unit_ai_weapon_range_adjustment;
+extern float g_unit_ai_damage_capability_scale;
+extern float g_unit_ai_multi_attacker_distance_scale;
+extern float g_unit_ai_resource_los_adjustment;
+extern float g_unit_ai_half_coordinate_adjustment;
+extern float g_unit_ai_desired_distance_adjustment;
+extern double g_unit_ai_coordinate_lower_bound;
+extern double g_unit_ai_coordinate_upper_bound;
+extern double g_sprite_minimum_animation_interval;
+extern float g_sprite_random_frame_scale;
+extern float g_combat_attack_modifier_one;
+extern double g_combat_area_zero_range;
+extern float g_combat_area_zero_float;
+extern float g_combat_missile_range_adjustment;
+extern double g_command_group_extent_limit;
+extern double g_command_zero_coordinate;
+extern float g_command_map_boundary_adjustment;
+extern float g_diplomacy_attribute_percent_scale;
+extern float g_doppleganger_save_version_7_06;
+extern float g_master_action_save_version_6_92;
+extern float g_master_combat_save_version_7_01;
+extern float g_damage_ability_initial_total;
+extern double g_damage_ability_positive_difference_threshold;
+extern double g_damage_ability_minimum_total_threshold;
+extern float g_damage_ability_minimum_total;
+extern float g_static_object_save_version_7_04;
+extern float g_static_object_save_version_7_12;
+extern float g_static_object_zero_float;
+extern float g_static_object_coordinate_epsilon;
+extern double g_static_object_zero;
+extern float g_static_object_bounds_min_adjustment;
+extern float g_static_object_bounds_max_adjustment;
+extern float g_map_save_version_7_0;
+extern float g_map_zero_interval;
+extern double g_tile_map_half;
+extern double g_tile_map_negative_half;
+extern double g_tile_map_one;
+extern float g_map_time_scale;
+extern float g_missile_zero_float;
+extern float g_missile_bounds_min_adjustment;
+extern float g_missile_bounds_max_adjustment;
+extern float g_missile_vertical_adjustment;
+extern double g_move_full_circle_double;
+extern float g_move_zero_angle;
+extern float g_move_negative_two_pi;
+extern float g_move_two_pi;
+extern float g_move_save_version_1_3;
+extern float g_move_save_version_7_22;
+extern float g_move_save_version_7_23;
+extern float g_move_positive_one;
+extern float g_move_negative_one;
+extern double g_move_pi_double;
+extern double g_move_negative_pi_double;
+extern float g_move_inverse_full_circle;
+extern float g_move_half_float;
+extern float g_move_negative_half_float;
+extern float g_move_time_scale;
+extern float g_move_quarter_pi;
+extern double g_move_half_double;
+extern double g_move_zero_double;
+extern float g_move_waypoint_distance_threshold;
+extern float g_move_radius_distance_adjustment;
+extern double g_move_turn_delta_upper;
+extern double g_move_turn_delta_lower;
+extern float g_move_speed_offset_base;
+extern double g_move_turn_delta_upper_wide;
+extern double g_move_turn_delta_lower_wide;
+extern float g_move_waypoint_distance_threshold_close;
+extern double g_move_speed_offset_lower;
+extern double g_move_speed_offset_upper;
+extern float g_move_facet_angle;
+extern double g_move_angle_tolerance;
+extern float g_music_fade_volume_scale;
+extern float g_path_zero_length;
+// VC5 multiplies by the later-declared global first. This order makes the PathingSystem
+// constructor read the scale where the original reads 00570E48 and the sign at 00570E4C.
+extern float g_path_diagonal_sign;
+extern float g_path_diagonal_scale;
+extern float g_path_diagonal_base;
+extern float g_path_min_action_range;
+extern float g_path_goal_tolerance_scale;
+extern float g_path_zero_speed;
+extern float g_path_coordinate_scale;
+extern float g_path_tile_center_adjustment;
+extern float g_path_bounds_offset;
+extern float g_path_rounding_adjustment;
+extern float g_path_bounds_offset_large;
+extern float g_path_coordinate_scale_negative;
+extern double g_path_distance_scale;
+extern double g_path_zero_terrain_value;
+extern float g_player_save_version_4_01;
+extern float g_player_save_version_7_09;
+extern float g_player_zero_attribute_amount;
+extern float g_rmm_path_terrain_cost_adjustment;
+extern float g_rmm_path_vertical_adjustment_positive;
+extern float g_rmm_path_vertical_adjustment_negative;
+extern float g_rmm_path_vertical_adjustment_small_positive;
+extern float g_rmm_path_vertical_adjustment_small_negative;
+extern double g_rmm_land_octagon_scale;
+extern double g_rmm_terrain_land_area_factor;
+extern float g_rmm_terrain_tile_ratio_scale;
+extern double g_rmm_terrain_tile_ratio_threshold;
+extern double g_rmm_object_land_area_factor;
+extern double g_rmm_object_perimeter_factor;
+extern float g_rmm_elevation_random_offset;
+extern float g_rmm_elevation_random_base;
+extern float g_rmm_elevation_random_scale;
+extern float g_rmm_elevation_map_type_factor;
+extern float g_scroll_time_scale;
+extern float g_fade_progress_scale;
+extern float g_no_area_effect_range;
+extern float g_spawn_panel_empty_attribute_amount;
+extern double g_sprite_zero_delta_time;
+extern float g_damage_health_percent_scale;
+extern float g_damage_sprite_random_scale;
+extern float g_object_bounds_min_adjustment;
+extern float g_object_bounds_max_adjustment;
+extern double g_build_tile_coordinate_epsilon;
+extern float g_building_zero_hp;
+extern double g_build_cancel_refund_factor;
+extern double g_building_one_threshold;
+extern float g_building_minimum_damage;
+extern double g_building_small_damage_threshold;
+extern float g_building_small_damage_amount;
+extern float g_combat_one_float;
+extern float g_combat_negative_one;
+extern double g_combat_one_threshold;
+extern float g_combat_zero_float;
+extern float g_combat_tile_center_adjustment;
+extern float g_angle_negative_two_pi;
+extern double g_combat_zero_range;
+extern double g_artifact_timer_threshold;
+extern float g_artifact_scan_lower_adjustment;
+extern float g_artifact_scan_upper_adjustment;
+extern float g_conversion_random_scale;
+extern float g_conversion_special_player_factor;
+extern float g_conversion_special_group_factor;
+extern double g_discovery_artifact_timer_threshold;
+extern float g_discovery_artifact_scan_lower_adjustment;
+extern float g_discovery_artifact_scan_upper_adjustment;
+extern float g_heal_attribute_threshold;
+extern double g_heal_distance_threshold;
+extern float g_hunt_empty_amount;
+extern double g_hunt_drop_distance_threshold;
+extern double g_trade_zero_value;
+extern float g_make_obj_radius_adjustment;
+extern float g_make_obj_random_scale;
+extern float g_make_obj_progress_percent;
+extern float g_repair_distance_offset;
+extern double g_repair_distance_threshold;
+extern float g_trade_positive_amount_threshold;
+extern float g_trade_distance_modifier_factor;
+extern float g_trade_distance_modifier_scale;
+extern float g_trade_minimum_transfer_modifier;
+extern double g_trade_modifier_threshold;
+extern float g_trade_max_transfer_amount;
+extern float g_information_ai_save_version_1_6;
+extern float g_information_ai_save_version_2_5;
+extern float g_information_ai_save_version_6_8;
+extern float g_information_ai_save_version_6_91;
+extern float g_information_ai_save_version_6_99;
+extern float g_main_decision_save_version_1_2;
+extern float g_main_decision_save_version_7_08;
+extern float g_strategy_ai_save_version_1_5;
+extern float g_tactical_group_save_version_6_94;
+extern float g_tactical_group_save_version_7_13;
+extern float g_tactical_group_save_version_7_14;
+extern float g_tactical_group_save_version_7_20;
+extern float g_tactical_ai_minimum_distance;
+extern float g_tactical_ai_distance_offset;
+extern float g_tactical_ai_retreat_los_factor;
+extern float g_tactical_ai_defender_los_factor;
+extern float g_ai_evasive_distance_scale;
+extern float g_soldier_evasive_distance_threshold;
+extern float g_soldier_evasive_coordinate_offset;
+extern float g_ranged_ai_zero_distance;
+extern float g_fishing_ship_evasive_distance_scale;
+extern float g_soldier_random_evasive_offset;
+extern float g_soldier_evasive_coordinate_threshold;
+extern float g_soldier_evasive_fallback_adjustment;
+extern float g_task_invalid_coordinate;
+extern float g_task_nonpositive_amount_threshold;
+extern double g_tech_zero_attribute;
+extern float g_master_combat_pierce_armor_save_version;
+extern float g_player_selection_zero_attribute;
+extern const float g_tactical_panel_rounding_offset;
+extern float g_trade_display_distance_factor;
+extern float g_trade_display_distance_scale;
+extern double g_trade_display_modifier_threshold;
+extern float g_trade_display_minimum_modifier;
+extern float g_trade_display_distance_scale_percent;
+extern float g_trade_display_max_transfer_amount;
+extern float g_trade_display_range_threshold;
+extern double g_trade_display_zero_amount;
+extern float g_building_progress_redraw_threshold;
+extern float g_scenario_file_version_1_13;
+extern float g_scenario_file_version_1_02;
+extern float g_scenario_file_version_1_03;
+extern float g_scenario_file_version_1_04;
+extern float g_scenario_file_version_1_12;
+extern float g_scenario_file_version_1_05;
+extern double g_scenario_victory_zero_coordinate;
+extern float g_view_tile_fraction_scale;
+extern float g_view_pick_coordinate_offset;
+extern float g_view_scroll_fraction_scale;
+extern float g_visible_resource_save_version;
+extern double g_visible_resource_diagonal_factor;
+extern double g_visible_resource_diagonal_adjustment;
+extern float g_main_view_initial_scroll_distance;
+extern float g_main_view_scroll_fraction_threshold;
+extern float g_main_view_zero_scroll_distance;
+extern float g_world_difficulty_save_version;
+extern float g_world_milliseconds_to_seconds;
+extern const double g_zone_passability_zero_threshold;
+extern TRIBE_Cliff_Higher_Check_Record TRIBE_Cliff_Higher_Check_Table[25];
+extern unsigned int basegame_shift_key_down;
+extern unsigned int basegame_key_message;
+extern unsigned int basegame_key_parameter;
+extern unsigned int basegame_alt_key_down;
+extern unsigned int basegame_control_key_down;
+extern TDebuggingLog* L;
+extern unsigned int basegame_palette_restore_time;
+extern unsigned int basegame_palette_restore_pending;
+// Shared DirectPlay interface pointer.
+extern IDirectPlay3* direct_play_interface;
+// Shared DirectPlay player identifier.
+extern unsigned long local_player_dpid;
+extern unsigned int panel_edit_change_active;
+extern unsigned int panel_edit_pending_change;
+extern long visible_map_checksums[9];
+extern unsigned long unified_visible_map_checksum;
+// Credits-screen palette state. The binary uses two contiguous 256-entry
+// PALETTEENTRY tables and stores the active draw area as a pointer.
+extern float palette_fade_duration;
+extern unsigned int palette_fade_start_time;
+extern int palette_fade_ignore_color1;
+extern int palette_fade_ignore_color2;
+extern int palette_fade_amount;
+extern unsigned char palette_fade_direction;
+extern tagPALETTEENTRY palette_fade_color;
+extern float palette_fade_duration_squared;
+extern tagPALETTEENTRY palette_fade_source[];
+extern tagPALETTEENTRY palette_fade_result[256];
+extern TDrawArea* palette_fade_surface;
+extern float repair_target_distance;
+extern unsigned int UNRESOLVED_game_state_0086be00;
+
+struct PAL_TABLE;
+extern PAL_TABLE System_color_Table[21];
+extern int FacetSkipMask[9];
+extern unsigned long ObstructionMasks[192];
+extern const int encrypt_table[32];
+struct MouseClickInfo;
+extern MouseClickInfo Tribe1btnMouseRightClickTable[40];
+extern MouseClickInfo Tribe1btnMouseLeftClickTable[40];
+extern int Tribe1btnMouseRightClickTableSize;
+extern int Tribe1btnMouseLeftClickTableSize;
+extern MouseClickInfo Tribe2btnMouseRightClickTable[40];
+extern MouseClickInfo Tribe2btnMouseLeftClickTable[40];
+extern int Tribe2btnMouseRightClickTableSize;
+extern int Tribe2btnMouseLeftClickTableSize;
+namespace tplayer_globals {
+extern unsigned int selectedObjectId;
+extern unsigned int selectedObjectCount;
+extern unsigned int buildListCategoryCount1;
+extern unsigned int buildListCategoryCount2;
+extern unsigned int buildListCategoryCount3;
+extern unsigned int buildListCategoryCount4;
+extern unsigned int buildListCategoryCount5;
+extern unsigned int buildListCategoryCount6;
+extern unsigned int buildListCategoryCount7;
+extern unsigned int attackTimingCategoryCount;
+extern unsigned int fastAttackListCount;
+extern unsigned int defaultAttackListCount;
+extern int selectedBuildListCount;
+extern unsigned int aggressiveBuildListCount;
+}

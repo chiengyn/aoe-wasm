@@ -1,0 +1,18 @@
+# Build outputs (engine/build.py, formats/build.py)
+build/
+build-release/
+# Engine copied into the page by `engine/build.py --game --web`
+web/engine/
+# Downloaded by tools/fetch_vendor.py (SpessaSynth + soundfont)
+web/vendor/
+# Game data prepared from your own installation (copyrighted; never commit)
+web/game/
+web/game-*/
+# Test and tool reports
+reports/*
+!reports/.gitkeep
+# Python / Node
+__pycache__/
+*.pyc
+.venv/
+node_modules/

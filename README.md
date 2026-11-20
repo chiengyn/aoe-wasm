@@ -1,0 +1,172 @@
+# Age of Empires: Rise of Rome in WebAssembly
+
+This project runs **Age of Empires: Rise of Rome** in the browser by compiling the recovered C++ source of the
+game ([dcostap/aoe1-decomp](https://github.com/dcostap/aoe1-decomp)) to WebAssembly. The game's own `WinMain`,
+game loop, screens and DirectPlay networking run unmodified. A Windows compatibility layer written for this
+port implements the Win32, GDI, DirectDraw, DirectSound, MCI and DirectPlay calls they make, on top of browser
+APIs.
+
+No game data is included. You need your own copy of the game. The port targets the retail 1.0a
+`EMPIRESX.EXE` (SHA-256 `a8d8cfb2…4b72`).
+
+![Multiplayer match in the browser](docs/images/browser-native-host.jpg)
+
+## Status
+
+- **Multiplayer works** from start to finish through the game's own menus: connection list, game list, lobby
+  with chat and ready flags, match, and dropped-player handling. Up to 8 players, each in a browser window on
+  this machine or on the LAN. Packets go through a WebSocket relay in `tools/serve.py`.
+- Sound effects, MIDI music (SpessaSynth + GeneralUser GS soundfont), intro videos and the WinHelp file
+  (converted to HTML) work.
+- A widescreen game view is optional (`?wide=0` keeps the original 4:3).
+- **Single player, campaigns and the Scenario Builder are out of scope for now.** Their screens are part of
+  the game code, but they haven't been ported or tested.
+- The recovered source is a 1998-07-17 beta, not the retail build. The known retail differences are being
+  ported; the port is not yet proven to behave 1:1 with the retail EXE. See [docs/PLAN.md](docs/PLAN.md).
+- The port can't play over the network against the Windows game.
+
+## Requirements
+
+- Your own Age of Empires + Rise of Rome installation (the folder that contains `EMPIRESX.EXE`).
+- Python 3 (standard library only for building and serving) and Node.js (tests).
+- [Emscripten](https://emscripten.org/docs/getting_started/downloads.html) to build the engine (tested with
+  emsdk 7.0.0). Pass its location with `--sdk`.
+- Optional: `ffmpeg` (converts the intro videos), and `clang` + `wasm-ld` (the standalone format readers
+  used by some tests).
+
+## Quick start
+
+```sh
+# 1. Build the game (optimized) and copy it into web/engine/
+python3 engine/build.py --sdk /path/to/emsdk --jobs 8 --game --release --web
+
+# 2. Copy your game folder into web/game/ (read only; converts videos and help)
+python3 tools/prepare_native.py '/path/to/Age of Empires'
+
+# 3. Optional: download the MIDI synthesizer and soundfont (hash-checked) for music
+python3 tools/fetch_vendor.py
+
+# 4. Serve and open http://127.0.0.1:8788/
+python3 tools/serve.py            # --host 0.0.0.0 to allow other machines on the LAN; --port to change it
+```
+
+Don't open the HTML file through `file://`. The page needs the local server for the WASM, the game files and
+the multiplayer relay.
+
+### Playing multiplayer
+
+1. Open `http://127.0.0.1:8788/` in two **separate browser windows**. Chrome throttles background tabs, so
+   two tabs in one window don't work well.
+2. In each window choose **Multiplayer**, enter a name, choose **Browser Connection For DirectPlay**, and
+   press **OK**.
+3. One player presses **Create**. The other presses **Show Games** and then **Join**.
+4. Both players press **I'm Ready!**, and the host presses **Start Game**.
+
+### Page options
+
+| URL parameter | Effect |
+|---|---|
+| `?wide=0` | Keep the game screen at 4:3. By default it widens to fit the window, up to 2.4:1. Menus are always 4:3. |
+| `?data=<name>` | Play a second edition prepared with `tools/prepare_native.py --out <name> <folder>` |
+| `?cmd=<args>` | Game command line (default `NODXCHECK`), e.g. `NOSTARTUP` to skip the intro videos |
+| `?autostart` | Start without the click-to-start screen (the browser may then block sound) |
+
+## Repository layout
+
+```text
+engine/              The game engine compiled to WASM
+  upstream/          Vendored recovered source (aoe1-decomp, pinned commit, CC0); the port's changes to it
+                     are recorded in port.patch and port-changes.json
+  platform/          Windows layer: win32_*.cpp (kernel, user, GDI, DirectDraw, DirectSound/MCI, DirectPlay,
+                     message loop), C versions of the assembly drawing routines, Windows headers
+  diagnostics/       Headless "probe" entry points used by the Node tests, plus the list of Windows APIs
+                     that are still unported
+  build.py           Compiles upstream + platform with Emscripten; links game and/or probe
+web/                 The page: native.html (canvas, input, help overlay), native-worker.mjs (runs the game
+                     in a Web Worker), native-media/-midi/-dplay/-storage.mjs (audio, music, network,
+                     IndexedDB saves), aoe-fonts.mjs (canvas fonts standing in for Windows fonts)
+tools/               Python tools: serve.py + dplay_relay.py (HTTP server and DirectPlay relay),
+                     prepare_native.py (game data), convert_help.py (WinHelp to HTML), fetch_vendor.py,
+                     prepare_test_data.py (test data), verify_*.py / compare_versions.py (retail EXE checks)
+formats/             Standalone C readers for DRS/SLP/palettes (assets.c) and DAT (dat.c), built to small
+                     WASM modules by formats/build.py; the tests use them to check the engine independently
+tests/               Node and Python test suites; tests/lib/ holds the JS wrappers they share
+docs/                PLAN.md (port plan and detailed progress log) and images
+reports/             Output of tests and tools (git-ignored)
+```
+
+Generated folders are git-ignored: `engine/build/`, `engine/build-release/`, `formats/build/`,
+`web/engine/`, `web/game/`, `web/vendor/` and `reports/`.
+
+## Building
+
+`engine/build.py` compiles all 225 recovered C++ files once, then links:
+
+| Command | Output | Use |
+|---|---|---|
+| `--game` | `engine/build/game.{mjs,wasm}` | Debug game build (`-O1 -g`, assertions); the native tests use it by default |
+| `--game --release` | `engine/build-release/game.{mjs,wasm}` | Optimized game build (~2.9 MB, ~0.9 MB gzipped) |
+| `--probe` | `engine/build/core-probe.{mjs,wasm}` | Headless diagnostic build for the probe tests |
+| `--web` (with `--game`) | `web/engine/` | Copies the game build into the page |
+
+Other flags: `--relink` reuses the objects if every source and header hash still matches, `--only <stem>…`
+recompiles selected files, and `--names` (with `--release`) keeps function names for stack traces.
+
+## Tests
+
+The tests run headless in Node against the built WASM. Most need prepared game data.
+
+```sh
+# Native game (real WinMain): needs engine/build.py --game and tools/prepare_native.py
+node tests/test_native_boot.mjs
+node tests/test_native_menu.mjs
+node tests/test_native_media.mjs
+node tests/test_native_scenarios.mjs
+AOE_PLAYERS=4 node tests/test_native_multiplayer.mjs    # AOE_PLAYERS=2..8, AOE_PLAY_SECONDS, AOE_DATA
+python3 tests/test_dplay_relay.py
+python3 tests/test_help_convert.py
+python3 tests/test_web_static.py --built
+
+# Probe build and format readers: needs engine/build.py --probe, formats/build.py,
+# python3 tools/prepare_test_data.py '<game folder>' and python3 tools/verify_retail_ui.py '<EMPIRESX.EXE>'
+node tests/test_assets.mjs
+node tests/test_dat.mjs
+node tests/test_engine.mjs
+node tests/test_session.mjs
+node tests/test_combat.mjs
+node tests/test_menu.mjs
+node tests/test_multiplayer.mjs
+node tests/test_game_ui.mjs
+node tests/test_battlefield.mjs
+```
+
+`AOE_BUILD=build-release` runs the native tests on the release build. Each suite writes a JSON report to
+`reports/`.
+
+### Checking against the retail EXE
+
+The C versions of the original assembly drawing routines are checked byte for byte against the retail
+executable. The check runs its functions in the Unicorn emulator; it doesn't start the game or modify the
+EXE. It needs `unicorn` and `pefile` in a separate Python environment:
+
+```sh
+python3 tests/test_drawing_oracle.py --exe '/path/to/EMPIRESX.EXE' --out /tmp/aoe-drawing-oracle.json
+node tests/test_drawing.mjs /tmp/aoe-drawing-oracle.json
+```
+
+`tools/verify_retail_ui.py` and `tools/verify_rng.py` read menu layout and RNG code from the EXE.
+`tools/compare_versions.py A B` compares two installations, including the EXE patch sites.
+
+## Credits and licenses
+
+- Recovered engine source: [dcostap/aoe1-decomp](https://github.com/dcostap/aoe1-decomp) at
+  `6d6d8b14023aa74e6ac30a6c88229d5b818fb805`, CC0-1.0 (`engine/upstream/LICENSE`).
+- `engine/platform/ddraw.h` and `dsound.h` come from MinGW-w64/Wine (LGPL-2.1-or-later); see
+  `engine/platform/NOTICE.md`.
+- Downloaded by `tools/fetch_vendor.py`, not committed: SpessaSynth (Apache-2.0) and the GeneralUser GS
+  soundfont.
+- The format readers in `formats/` are new code. They follow the DRS/SLP notes from
+  [openage](https://github.com/SFTtech/openage) and the field layout from aoe1-decomp and
+  [genieutils](https://github.com/Tapsa/genieutils); no code from those projects is included.
+- Age of Empires is a trademark of Microsoft. This project isn't affiliated with or endorsed by Microsoft.
+  Game files you prepare stay in the git-ignored `web/game/`. Don't publish them.

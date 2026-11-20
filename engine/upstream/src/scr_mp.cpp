@@ -1,0 +1,290 @@
+
+#include <string.h>
+#include <io.h>
+#include "../include/com_serv.h"
+#include "../include/game_globals.h"
+#include "../include/resource_ids.h"
+#include "../include/scr_mp.h"
+#include "../include/pnl_btn.h"
+#include "../include/pnl_lst.h"
+#include "../include/pnl_edit.h"
+#include "../include/Pnl_scbr.h"
+#include "../include/registry.h"
+#include "../include/com_hand.h"
+#include "../include/basegame.h"
+#include "../include/scr_main.h"
+#include "../include/scr_cj.h"
+
+TribeMPStartupScreen::TribeMPStartupScreen() : TScreenPanel("MP Startup Screen") {
+    TButtonPanel** cancel_button;
+    TButtonPanel** ok_button;
+    TButtonPanel* cancel;
+    HKEY ghUserKey;
+    unsigned long dwSize;
+    unsigned long dwType;
+    unsigned long gdwDisp;
+    char Data[256];
+    char temp_str[256];
+    char str[256];
+    cancel_button = &this->cancelButton;
+    this->help_button = 0;
+    this->okButton = 0;
+    this->cancelButton = 0;
+    this->close_button = 0;
+
+    rge_base_game->setMultiplayerGame(0);
+    if (this->setup(rge_base_game->draw_area, "scr3", 0xC385, 1) == 0) {
+        this->error_code = 1;
+        return;
+    }
+
+    this->setup_shadow_area(0);
+    this->set_ideal_size(640, 480);
+
+    if (this->create_text(
+            this, &this->title, STRING_ID_MULTIPLAYER_CONNECTION_TITLE, 20, 20, 600, 30, RGE_FONT_COPPERPLATE_21_BOLD, 1, 0, 0
+        )
+        && this->create_text(
+            this, &this->inputTitle, STRING_ID_MULTIPLAYER_NAME_LABEL, 20, 75, 500, 20, RGE_FONT_COPPERPLATE_12_BOLD_ALT, 0, 0, 0
+        )) {
+        if (Regs->RegGetAscii(1, "Default Age Of Empires Player Name") != 0) {
+            strcpy(str, Regs->RegGetAscii(1, "Default Age Of Empires Player Name"));
+        } else {
+            str[0] = 0;
+        }
+
+        if (this->create_edit(this, &this->input, str, 0x0F, TEditPanel::FormatText, 20, 100, 600, 23, RGE_FONT_STANDARD, 1, 0)) {
+            this->input->set_help_info(STRING_ID_HELP_MULTIPLAYER_PLAYER_NAME, -1);
+            if (this->create_text(
+                    this, &this->connectionTitle, STRING_ID_MULTIPLAYER_CONNECTION_TYPE_LABEL, 20, 165, 600, 20,
+                    RGE_FONT_COPPERPLATE_12_BOLD_ALT, 0, 0, 0
+                )
+                && this->create_list(this, &this->list, 20, 190, 600, 210, RGE_FONT_STANDARD)
+                && this->create_auto_scrollbar(&this->scrollbar, this->list, 20)) {
+                this->list->set_help_info(STRING_ID_HELP_MULTIPLAYER_CONNECTION_TYPE, STRING_ID_HELP_MP_CONNECTION_TYPE_MORE);
+                ok_button = &this->okButton;
+                if (this->create_button(
+                        this, ok_button, STRING_ID_BUTTON_OK, 0, 70, 440, 240, 30, RGE_FONT_COPPERPLATE_12_BOLD, 0, 0
+                    )) {
+                    (*ok_button)->set_help_info(STRING_ID_HELP_OK, -1);
+                    if (this->create_button(
+                            this, cancel_button, STRING_ID_BUTTON_CANCEL, 0, 330, 440, 240, 30, RGE_FONT_COPPERPLATE_12_BOLD, 0, 0
+                        )) {
+                        (*cancel_button)->set_help_info(STRING_ID_HELP_CANCEL, -1);
+                        cancel = *cancel_button;
+                        cancel->hotkey = VK_ESCAPE;
+                        cancel->hotkey_shift = 0;
+                        if (this->create_button(
+                                this, &this->help_button, STRING_ID_BUTTON_HELP, 0, 580, 440, 30, 30,
+                                RGE_FONT_COPPERPLATE_12_BOLD, 0, 0
+                            )) {
+                            if (this->create_button(
+                                    this, &this->close_button, STRING_ID_BUTTON_CLOSE, 0, 0, 0, 0, 0, -1, -1, 0
+                                )) {
+                                this->close_button->set_active(1);
+                                this->close_button->set_positioning(
+                                    TPanel::PositionRightTop, 4, 4, 4, 4, 17, 17, 17, 17, 0, 0, 0, 0
+                                );
+
+                                this->zone_exec[0] = 0;
+                                this->browser_exec[0] = 0;
+                                RegCreateKeyExA(
+                                    HKEY_CLASSES_ROOT, "http\\shell\\open\\command", 0, 0, 0, 0xF003F, 0, &ghUserKey, &gdwDisp
+                                );
+                                dwType = 1;
+                                dwSize = 0xFF;
+                                int result = RegQueryValueExA(ghUserKey, 0, 0, &dwType, (unsigned char*) ((void*) Data), &dwSize);
+                                if (ghUserKey != 0) {
+                                    RegCloseKey(ghUserKey);
+                                    ghUserKey = 0;
+                                }
+
+                                if (result == 0) {
+                                    char* command = Data;
+                                    ++command;
+                                    strncpy(temp_str, command, strlen(Data));
+                                    char* quote = strchr(temp_str, 0x22);
+                                    if (quote != 0) {
+                                        int length = quote - temp_str + 1;
+                                        strncpy(browser_exec, temp_str, length - 1);
+                                        browser_exec[length - 1] = 0;
+                                    }
+
+                                    char* zone = Regs->RegGetAscii(0, "Zone");
+                                    if (zone != 0) {
+                                        strcat(Data, zone);
+                                        strcpy(this->zone_exec, Data);
+                                    }
+                                }
+
+                                this->fillList();
+                                this->set_curr_child(this->input);
+                                TPanel* tabList[5];
+                                tabList[0] = this->input;
+                                tabList[1] = this->list;
+                                tabList[2] = this->okButton;
+                                tabList[3] = this->cancelButton;
+                                tabList[4] = this->help_button;
+                                this->set_tab_order(tabList, 5);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+TribeMPStartupScreen::~TribeMPStartupScreen() {
+    this->delete_panel((TPanel**) &this->title);
+    this->delete_panel((TPanel**) &this->inputTitle);
+    this->delete_panel((TPanel**) &this->input);
+    this->delete_panel((TPanel**) &this->connectionTitle);
+    this->delete_panel((TPanel**) &this->list);
+    this->delete_panel((TPanel**) &this->scrollbar);
+    this->delete_panel((TPanel**) &this->okButton);
+    this->delete_panel((TPanel**) &this->cancelButton);
+    this->delete_panel((TPanel**) &this->help_button);
+    this->delete_panel((TPanel**) &this->close_button);
+
+    panel_system.destroyPanel("Create Dialog");
+    panel_system.destroyPanel("OKDialog");
+    panel_system.destroyPanel("YesNoDialog");
+}
+
+long TribeMPStartupScreen::handle_idle() {
+    if (!rge_base_game->input_enabled)
+        rge_base_game->enable_input();
+    return TPanel::handle_idle();
+}
+
+long TribeMPStartupScreen::action(TPanel* fromPanel, long actionIn, unsigned long a1, unsigned long a2) {
+    if (fromPanel != 0) {
+        if (fromPanel == this->list && actionIn == 3) {
+            this->action(this->okButton, 1, 0, 0);
+            return 1;
+        }
+
+        if (fromPanel == this->close_button && actionIn == 1) {
+            rge_base_game->close();
+            return 1;
+        }
+
+        if (fromPanel == this->okButton && actionIn == 1) {
+            rge_base_game->setMultiplayerGame(1);
+            if (*this->input->get_text() == 0) {
+                this->popupOKDialog(STRING_ID_ERROR_PLAYER_NAME_REQUIRED, "Name Error", TEASY_POPUP_WIDTH, 100);
+                return actionIn;
+            } else if (this->list->numberLines() == 0) {
+                this->popupOKDialog(STRING_ID_ERROR_NO_MULTIPLAYER_CONNECTIONS, "List Error", TEASY_POPUP_WIDTH, 100);
+                return 1;
+            } else if (this->zone_exec[0] == 0 || this->list->get_id() != -1) {
+                rge_base_game->disable_input();
+                Regs->RegSetAscii(
+                    1, "Default Age Of Empires Player Name", (unsigned char*) ((void*) this->input->currentLine()),
+                    strlen(this->input->currentLine()) + 1
+                );
+                Regs->RegSetAscii(
+                    1, "Default Age Of Empires Multiplayer Service", (unsigned char*) ((void*) this->list->get_text()),
+                    strlen(this->list->get_text()) + 1
+                );
+                comm->SetMyPlayerName(this->input->currentLine());
+
+                TCommunications_Services Serv;
+                comm->SetServiceGUID(Serv.GetServiceGUID(this->list->get_id()));
+                comm->InitJoinGame();
+
+                new TribeJoinScreen;
+                panel_system.setCurrentPanel("Join Screen", 0);
+                panel_system.destroyPanel("MP Startup Screen");
+                return 1;
+            } else {
+                this->popupYesNoDialog(STRING_ID_CONFIRM_START_GAMING_ZONE, "Start Zone", TEASY_POPUP_WIDTH, 100);
+                return 1;
+            }
+        }
+
+        if ((fromPanel == this->cancelButton && actionIn == 1) || (fromPanel == this->input && actionIn == 1)) {
+            rge_base_game->disable_input();
+            comm->UnlinkToLevel(SINGLE_PLAYER);
+            new TRIBE_Screen_Main_Menu;
+            panel_system.setCurrentPanel("Main Menu", 0);
+            panel_system.destroyPanel("MP Startup Screen");
+            return 1;
+        }
+
+        if (fromPanel == this->help_button && actionIn == 1) {
+            this->setup_popup_help();
+            return actionIn;
+        }
+
+        if (fromPanel->panelName() != 0 && strcmp(fromPanel->panelName(), "List Error") == 0) {
+            panel_system.destroyPanel("List Error");
+            this->set_curr_child(this->list);
+            actionIn = 1;
+            return actionIn;
+        }
+
+        if (fromPanel->panelName() != 0 && strcmp(fromPanel->panelName(), "Name Error") == 0) {
+            panel_system.destroyPanel("Name Error");
+            this->set_curr_child(this->input);
+            actionIn = 1;
+            return actionIn;
+        }
+
+        if (fromPanel->panelName() != 0 && strcmp(fromPanel->panelName(), "Start Zone") == 0) {
+            panel_system.destroyPanel("Start Zone");
+            this->set_curr_child(this->list);
+            if (actionIn == 0) {
+                rge_base_game->disable_input();
+                WinExec(this->zone_exec, 3);
+                rge_base_game->close();
+            }
+            return 1;
+        }
+    }
+
+    return this->TEasy_Panel::action(fromPanel, actionIn, a1, a2);
+}
+
+void TribeMPStartupScreen::fillList() {
+    int lastServiceNumber;
+    char lastServiceName[256];
+    struct _finddata_t file_info;
+
+    this->list->empty_list();
+    TCommunications_Services Serv;
+    int serviceCount = Serv.GetServiceCount();
+
+    lastServiceNumber = -1;
+    if (Regs->RegGetAscii(1, "Default Age Of Empires Multiplayer Service")) {
+        strcpy(lastServiceName, Regs->RegGetAscii(1, "Default Age Of Empires Multiplayer Service"));
+    } else {
+        strcpy(lastServiceName, "");
+    }
+
+    int i = 0;
+    if (serviceCount > 0) {
+        do {
+            if (Serv.GetServiceActive(i) && Serv.GetServiceName(i)) {
+                this->list->append_line(Serv.GetServiceName(i), i);
+                if (strcmp(Serv.GetServiceName(i), lastServiceName) == 0) {
+                    lastServiceNumber = i;
+                }
+            }
+            i++;
+        } while (i < serviceCount);
+    }
+
+    if (_findfirst(this->browser_exec, &file_info) != -1 && this->zone_exec[0]) {
+        this->list->append_line(STRING_ID_MULTIPLAYER_GAMING_ZONE, -1);
+    }
+
+    if (lastServiceNumber != -1) {
+        this->list->set_line(this->list->get_line(lastServiceNumber));
+    }
+}
+
+long TribeMPStartupScreen::handle_user_command(unsigned int wParam, long lParam) {
+    return 1;
+}

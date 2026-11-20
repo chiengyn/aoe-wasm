@@ -1,0 +1,385 @@
+//
+
+#include "../include/game_globals.h"
+#include "../include/tribegam.h"
+#include "../include/rge_fio.h"
+#include "../include/tact_cnv.h"
+#include "../include/act_list.h"
+#include "../include/act_move.h"
+#include "../include/act_obj.h"
+#include "../include/basegame.h"
+#include "../include/m_ac_obj.h"
+#include "../include/m_co_obj.h"
+#include "../include/m_s_obj.h"
+#include "../include/player.h"
+#include "../include/rge_base_game_global.h"
+#include "../include/sound.h"
+#include "../include/task.h"
+#include "../include/world.h"
+
+typedef unsigned char uchar;
+
+TRIBE_Action_Convert::TRIBE_Action_Convert(int infile, RGE_Action_Object* obj_in) :
+    RGE_Action(infile, obj_in, 1), requiredRange(1.0f) {
+    this->action_type = TRIBE_ACTION_TYPE_CONVERT;
+    rge_read(infile, &this->was_same_owner, 1);
+    rge_read(infile, &this->requiredRange, 4);
+}
+
+TRIBE_Action_Convert::TRIBE_Action_Convert(RGE_Action_Object* obj_in, RGE_Task* task_in, RGE_Static_Object* target_obj_in) :
+    RGE_Action(obj_in, 1), requiredRange(1.0f) {
+    this->task = task_in;
+    this->action_type = TRIBE_ACTION_TYPE_CONVERT;
+    RGE_Action::set_target_obj(target_obj_in);
+    if (target_obj_in != 0) {
+        this->target_x = target_obj_in->world_x;
+        this->target_y = target_obj_in->world_y;
+        this->target_z = target_obj_in->world_z;
+    }
+    this->was_same_owner = 0;
+}
+
+TRIBE_Action_Convert::TRIBE_Action_Convert(RGE_Action_Object* obj_in, RGE_Task* task_in, float x, float y, float z) :
+    RGE_Action(obj_in, 1), requiredRange(1.0f) {
+    this->task = task_in;
+    this->action_type = TRIBE_ACTION_TYPE_CONVERT;
+    this->target_x = x;
+    this->target_y = y;
+    this->target_z = z;
+    this->was_same_owner = 0;
+}
+
+void TRIBE_Action_Convert::save(int outfile) {
+    RGE_Action::save(outfile);
+    rge_write(outfile, &this->was_same_owner, 1);
+    rge_write(outfile, &this->requiredRange, 4);
+}
+
+void TRIBE_Action_Convert::first_in_stack(uchar first_time) {
+    RGE_Static_Object* target = this->target_obj;
+    if (target != 0) {
+        int object_group = target->master_obj->object_group;
+        RGE_Action_Object* object = this->obj;
+        if (target->owner == this->obj->owner) {
+            this->was_same_owner = 1;
+        } else {
+            this->was_same_owner = 0;
+        }
+        short target_id = target->master_obj->id;
+        if (target_id == MASTER_OBJECT_TOWN_CENTER1 || object_group == OBJECT_GROUP_WALL || target_id == MASTER_OBJECT_ARTIFACT1
+            || target_id == MASTER_OBJECT_ARTIFACT_RUINS1 || target_id == MASTER_OBJECT_ARTIFACT_RUINS2
+            || target_id == MASTER_OBJECT_WONDER) {
+            if (object->owner->computerPlayer() == 1) {
+                this->set_state(0x0b);
+            } else {
+                this->set_state(0x0d);
+            }
+            target_id = this->target_obj->master_obj->id;
+            if (target_id == MASTER_OBJECT_TOWN_CENTER1) {
+                rge_base_game->notification(GAME_NOTIFY_CONVERSION_TOWN_CENTER, (int) this->obj->owner->id, 0, 0, 0);
+                return;
+            }
+            if (target_id == MASTER_OBJECT_WONDER) {
+                rge_base_game->notification(GAME_NOTIFY_CONVERSION_WONDER, (int) this->obj->owner->id, 0, 0, 0);
+                return;
+            }
+            return;
+        }
+        if (object->attribute_amount_held < 100.0) {
+            this->set_state(0x0d);
+            rge_base_game->notification(GAME_NOTIFY_CONVERSION_NO_FAITH, (int) this->obj->owner->id, 0, 0, 0);
+            return;
+        }
+        if (object_group == OBJECT_GROUP_BUILDING) {
+            this->requiredRange = 1.0f;
+        } else {
+            this->requiredRange = ((RGE_Master_Combat_Object*) object->master_obj)->weapon_range;
+        }
+        if (object_group == OBJECT_GROUP_FLAG) {
+            this->set_state(0x0d);
+            return;
+        }
+        if (object_group == OBJECT_GROUP_PRIEST && object->owner->attributes[PLAYER_ATTRIBUTE_PRIEST_CONVERSION] <= 0.0f) {
+            if (object->owner->computerPlayer() == 1) {
+                this->set_state(0x0b);
+            } else {
+                this->set_state(0x0d);
+            }
+            rge_base_game->notification(GAME_NOTIFY_CONVERSION_PRIEST_NEEDS_MONOTHEISM, (int) this->obj->owner->id, 0, 0, 0);
+            return;
+        }
+        if (object_group == OBJECT_GROUP_BUILDING && object->owner->attributes[PLAYER_ATTRIBUTE_BUILDING_CONVERSION] <= 0.0f) {
+            if (object->owner->computerPlayer() == 1) {
+                this->set_state(0x0b);
+            } else {
+                this->set_state(0x0d);
+            }
+            rge_base_game->notification(GAME_NOTIFY_CONVERSION_BUILDING_NEEDS_MONOTHEISM, (int) this->obj->owner->id, 0, 0, 0);
+            return;
+        }
+    }
+    if (first_time != 0) {
+        if (target != 0) {
+            this->set_state(4);
+            return;
+        } else {
+            this->set_state(3);
+            return;
+        }
+    }
+    this->set_state(3);
+}
+
+void TRIBE_Action_Convert::set_state(uchar new_state) {
+    this->sub_actions->delete_list();
+    this->state = new_state;
+    switch (new_state) {
+        case 3:
+            this->obj->notify(
+                (int) this->obj->id, (int) this->obj->id, UNIT_AI_NOTIFY_REQUEST_TASK, (long) UNIT_AI_ACTION_CONVERT, 0L, 0L
+            );
+            goto master_sprite;
+
+        case 11: {
+            RGE_Action_Move_To* action = new RGE_Action_Move_To(
+                this->obj, this->target_x, this->target_y, this->target_z, this->requiredRange, this->task->move_sprite
+            );
+            if (action == 0) {
+                this->set_state(0x0D);
+                return;
+            }
+            action->setSubAction(1);
+            this->sub_actions->add_action(action);
+            return;
+        }
+
+        case 4: {
+            this->target_x = this->target_obj->world_x;
+            this->target_y = this->target_obj->world_y;
+            this->target_z = this->target_obj->world_z;
+            RGE_Action_Move_To* action =
+                new RGE_Action_Move_To(this->obj, this->target_obj, this->requiredRange, this->task->move_sprite);
+            if (action == 0) {
+                this->set_state(0x0D);
+                return;
+            }
+            this->sub_actions->add_action(action);
+            action->setSubAction(1);
+            return;
+        }
+
+        case 6:
+            this->obj->new_sprite(this->task->move_sprite);
+            return;
+
+        case 7:
+            this->obj->new_sprite(this->task->work_sprite);
+            if (this->task->work_sound != 0)
+                this->task->work_sound->play(1);
+            if (this->target_obj != 0 && this->target_obj->owner->id > 0) {
+                this->target_obj->owner->make_new_object(
+                    MASTER_OBJECT_FLARE, this->obj->world_x, this->obj->world_y, this->obj->world_z, 0
+                );
+            }
+            this->timer = this->task->work_val2;
+            return;
+
+        case 5:
+        case 8:
+        case 9:
+        case 10:
+        case 12:
+            return;
+
+        case 1:
+        case 2:
+        case 13:
+        case 14:
+        master_sprite:
+            this->obj->new_sprite(this->obj->master_obj->sprite);
+            return;
+    }
+}
+
+uchar TRIBE_Action_Convert::update() {
+    if (this->targetID != -1) {
+        if (this->obj->owner->world->object(this->targetID) == 0) {
+            this->set_target_obj(0);
+            this->set_state(3);
+            return RGE_ACTION_UPDATE_CONTINUE;
+        }
+    }
+
+    if (this->target2ID != -1) {
+        if (this->obj->owner->world->object(this->target2ID) == 0) {
+            this->set_target_obj2(0);
+        }
+    }
+
+    //! @bug This guard accepts only active objects, but priest selectors also accept unfinished objects.
+    //! An enemy construction site (state 0) is dropped here and then picked again at once.
+    //! The AI priest repeats that cycle forever and never moves.
+    if (this->target_obj != 0 && this->target_obj->object_state != RGE_OBJECT_STATE_ACTIVE) {
+        this->set_target_obj(0);
+        this->set_state(3);
+        return RGE_ACTION_UPDATE_CONTINUE;
+    }
+
+    if (this->target_obj != 0 && this->obj->owner->isAlly(this->target_obj->owner->id) == 1) {
+        if (this->state == 7 || this->state == 6 || this->state == 4) {
+            this->obj->set_attribute(RGE_RESOURCE_FAITH, 0);
+        }
+        this->set_state(1);
+        this->obj->notify(
+            (int) this->obj->id, (int) this->obj->id, UNIT_AI_NOTIFY_TARGET_INVALID, (long) UNIT_AI_ACTION_CONVERT, 0L, 0L
+        );
+        return RGE_ACTION_UPDATE_TARGET_INVALID;
+    }
+
+    switch (this->state) {
+        // Original table 004CE3FC assigns these handlers to states 11 and 4.
+        case 11:
+            switch (this->sub_actions->update()) {
+                case RGE_ACTION_UPDATE_FAILED:
+                    this->set_state(13);
+                    return RGE_ACTION_UPDATE_CONTINUE;
+                case RGE_ACTION_UPDATE_TARGET_INVALID:
+                    this->set_target_obj(0);
+                    this->set_state(11);
+                    return RGE_ACTION_UPDATE_CONTINUE;
+                case RGE_ACTION_UPDATE_REMOVE:
+                case RGE_ACTION_UPDATE_COMPLETED:
+                case RGE_ACTION_UPDATE_TARGET_LOST:
+                    this->set_state(3);
+                    return RGE_ACTION_UPDATE_CONTINUE;
+            }
+            break;
+
+        case 4:
+            switch (this->sub_actions->update()) {
+                case RGE_ACTION_UPDATE_TARGET_INVALID:
+                case RGE_ACTION_UPDATE_TARGET_LOST:
+                    this->set_target_obj(0);
+                    this->set_state(11);
+                    return RGE_ACTION_UPDATE_CONTINUE;
+                case RGE_ACTION_UPDATE_FAILED:
+                    this->set_state(13);
+                    return RGE_ACTION_UPDATE_CONTINUE;
+                case RGE_ACTION_UPDATE_REMOVE:
+                case RGE_ACTION_UPDATE_COMPLETED:
+                    this->set_state(6);
+                    return RGE_ACTION_UPDATE_CONTINUE;
+            }
+            break;
+
+        case 6:
+            if (this->target_obj == 0) {
+                this->set_state(3);
+                return RGE_ACTION_UPDATE_CONTINUE;
+            }
+            if (this->obj->turn_towards(this->target_obj, 0, 0)) {
+                this->set_state(7);
+                return RGE_ACTION_UPDATE_CONTINUE;
+            }
+            break;
+
+        case 7: {
+            if (this->target_obj == 0) {
+                this->set_state(3);
+                return RGE_ACTION_UPDATE_CONTINUE;
+            }
+            this->target_obj->notify(
+                (int) this->obj->id, (int) this->target_obj->id, UNIT_AI_NOTIFY_ATTACKED, (long) this->obj->id,
+                (long) this->target_obj->hp, (long) this->target_obj->master_obj->hp
+            );
+            this->timer = this->timer - this->obj->owner->world->world_time_delta_seconds;
+            if (this->timer <= 0.0f) {
+                if (this->target_obj != 0 && this->target_obj->owner->id > 0) {
+                    this->target_obj->owner->make_new_object(
+                        MASTER_OBJECT_FLARE, this->obj->world_x, this->obj->world_y, this->obj->world_z, 0
+                    );
+                }
+                int r = debug_rand("C:\\msdev\\work\\age1_x1\\tact_cnv.cpp", 471);
+                float chance = (float) r * g_conversion_random_scale;
+                RGE_Player* tplayer = this->target_obj->owner;
+                //! Conversion resistance is hard-coded here: 4 for Macedonian owners, 2 for boat and priest groups.
+                //! Chariot groups get 8; every other class keeps 1. The owner-civ branch preempts the class branches.
+                //! RockNROR makes these factors configurable in the dat.
+                if (tplayer->master_player_id == CIVILIZATION_MACEDONIAN) {
+                    chance = chance * g_conversion_special_player_factor;
+                } else {
+                    short type = this->target_obj->master_obj->object_group;
+                    if (type == OBJECT_GROUP_FISHING_BOAT || type == OBJECT_GROUP_TRADE_BOAT
+                        || type == OBJECT_GROUP_TRANSPORT_BOAT || type == OBJECT_GROUP_WAR_BOAT || type == OBJECT_GROUP_PRIEST) {
+                        chance = chance + chance;
+                    } else if (type == OBJECT_GROUP_CHARIOT || type == OBJECT_GROUP_CHARIOT_ARCHER) {
+                        chance = chance * g_conversion_special_group_factor;
+                    }
+                }
+                // Direct field ownership preserves the original x87 order.
+                if (chance <= this->task->work_val1 * ((RGE_Master_Action_Object*) this->obj->master_obj)->work_rate) {
+                    rge_base_game->notification(
+                        GAME_NOTIFY_CONVERSION_SUCCEEDED, this->obj->owner->id, this->target_obj->owner->id, 0, 0
+                    );
+                    this->target_obj->change_ownership(this->obj->owner);
+                    this->obj->owner->add_attribute_num(PLAYER_ATTRIBUTE_CONVERSIONS, 1.0f, 0);
+                    this->obj->set_attribute(RGE_RESOURCE_FAITH, 0);
+                    this->set_state(3);
+                }
+                this->set_state(4);
+                return RGE_ACTION_UPDATE_CONTINUE;
+            }
+            break;
+        }
+
+        case 1:
+            return RGE_ACTION_UPDATE_REMOVE;
+
+        case 13:
+            this->obj->notify(
+                (int) this->obj->id, (int) this->obj->id, UNIT_AI_NOTIFY_ACTION_FAILED, (long) UNIT_AI_ACTION_CONVERT, 0L, 0L
+            );
+            this->set_state(2);
+            return RGE_ACTION_UPDATE_FAILED;
+    }
+
+    return RGE_ACTION_UPDATE_CONTINUE;
+}
+
+int TRIBE_Action_Convert::work(RGE_Static_Object* obj_in, float x, float y, float z) {
+    if (obj_in != 0) {
+        if (obj_in == this->target_obj) {
+            uchar state = this->state;
+            if (state == 4 || state == 6 || state == 7)
+                return 1;
+        }
+        this->set_target_obj(obj_in);
+        this->target_x = obj_in->world_x;
+        this->target_y = obj_in->world_y;
+        this->target_z = obj_in->world_z;
+        this->first_in_stack(1);
+        return 1;
+    }
+    return 0;
+}
+
+void TRIBE_Action_Convert::martyrdom() {
+    if (this->state != 7) {
+        return;
+    }
+    if (this->target_obj == 0) {
+        return;
+    }
+    if (this->target_obj->master_obj->object_group == OBJECT_GROUP_PRIEST) {
+        return;
+    }
+
+    int target_id = this->target_obj->owner->id;
+    int source_id = this->obj->owner->id;
+
+    rge_base_game->notification(GAME_NOTIFY_CONVERSION_SUCCEEDED, source_id, target_id, 0, 0);
+    this->target_obj->change_ownership(this->obj->owner);
+    this->obj->owner->add_attribute_num(PLAYER_ATTRIBUTE_CONVERSIONS, 1.0f, 0);
+    this->obj->set_attribute(RGE_RESOURCE_FAITH, 0);
+    this->set_state(3);
+}

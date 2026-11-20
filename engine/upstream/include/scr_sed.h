@@ -1,0 +1,312 @@
+#ifndef AOE1_SCR_SED_H
+#define AOE1_SCR_SED_H
+
+// TRIBE_Screen_Sed and List_Info are the only declarations owned here.
+// Shared panel and control types come from their canonical owners.
+#include "Pnl_scr.h"
+#include "Pnl_inp.h"
+#include "pnl_edit.h"
+
+class RGE_Static_Object;
+class TShape;
+class TTextPanel;
+class TButtonPanel;
+class TInputPanel;
+class TDropDownPanel;
+class TEditPanel;
+class TListPanel;
+class TScrollBarPanel;
+class TMessagePanel;
+class TRIBE_Main_View;
+class RGE_Diamond_Map_View;
+class TRIBE_Scenario_Editor_Panel_Object;
+class TRIBE_World;
+
+// The scenario editor shares this 260-byte default-save-name buffer.
+extern char scenario_default_file_name[260];
+
+class TRIBE_Screen_Sed : public TScreenPanel {
+  public:
+    TRIBE_Screen_Sed(char* scenario_name_in, int is_multi_player_in);
+
+    enum ScenarioMode {
+        ScenarioModeNone = 0,
+        ScenarioModeMap = 1,
+        ScenarioModeTerrain = 2,
+        ScenarioModePlayers = 3,
+        ScenarioModeUnits = 4,
+        ScenarioModeDiplomacy = 5,
+        ScenarioModeVictory = 6,
+        ScenarioModeVictoryMulti = 7,
+        ScenarioModeOptions = 8,
+        ScenarioModeMessages = 9,
+        ScenarioModeCinematics = 10,
+        ScenarioModeSave = 11
+    };
+    enum SelectRegionMode { SelectOff = 0, SelectObject = 1, SelectDestinationObject = 2, SelectArea = 3 };
+    enum MapType { MapTypeNone = 0, MapTypeBlankValue = 1, MapTypeRandomValue = 2, MapTypeSeedValue = 3 };
+    enum VictoryType {
+        VictoryTypeNone = 0,
+        VictoryTypeStandardValue = 1,
+        VictoryTypeConquestValue = 2,
+        VictoryTypeScoreValue = 3,
+        VictoryTypeTimeValue = 4,
+        VictoryTypeCustomValue = 5
+    };
+    enum PaintType { PaintTypeNone = 0, PaintTypeTerrainValue = 1, PaintTypeElevationValue = 2, PaintTypeObjectValue = 3 };
+    enum BrushSize {
+        BrushSizeNone = 0,
+        BrushSizeVerySmall = 1,
+        BrushSizeSmall = 2,
+        BrushSizeMedium = 3,
+        BrushSizeLarge = 4,
+        BrushSizeVeryLarge = 5
+    };
+    enum MessageType { MessageTypeNone = 0, MessageTypeNormal = 1, MessageTypeWarning = 2, MessageTypeError = 3 };
+
+    class List_Info {
+      public:
+        char text[100];
+        short id;
+    };
+
+    int is_multi_player;
+    int set_player_first_flag;
+    RGE_Static_Object* SelectedObject;
+    RGE_Static_Object* DestinationObject;
+    float px1;
+    float py1;
+    float px2;
+    float py2;
+    int CurrentVictory;
+    int CurrentPlayer;
+    SelectRegionMode SelectRegionFlag;
+    ScenarioMode scenario_mode;
+    MapType map_type;
+    VictoryType mp_victory_type;
+    BrushSize brush_size;
+    PaintType paint_type;
+    short player_num;
+    MessageType message_type;
+    unsigned char need_to_save_flag;
+    unsigned char valid_save_spot_flag;
+    TShape* background_pic;
+    TRIBE_Main_View* main_view;
+    RGE_Diamond_Map_View* map_view;
+    TMessagePanel* message_panel;
+    TPanel* bottom_panel;
+    TButtonPanel* scenario_mode_button[10];
+    TButtonPanel* menu_button;
+    TButtonPanel* help_button;
+    TButtonPanel* map_type_button[3];
+    TTextPanel* map_type_text[3];
+    TTextPanel* map_type_label;
+    TTextPanel* default_terrain_label;
+    TDropDownPanel* default_terrain_drop;
+    TTextPanel* map_size_label;
+    TDropDownPanel* map_size_drop;
+    TTextPanel* map_style_label;
+    TDropDownPanel* map_style_drop;
+    TTextPanel* random_seed_label;
+    TEditPanel* random_seed_input;
+    TTextPanel* random_seed_used_label;
+    TTextPanel* random_seed_used_text;
+    TButtonPanel* generate_map_button;
+    TTextPanel* map_generating_text;
+    TTextPanel* brush_size_label;
+    TButtonPanel* brush_size_button[5];
+    TTextPanel* brush_size_button_label[5];
+    TTextPanel* paint_type_label;
+    TButtonPanel* paint_type_button[3];
+    TTextPanel* paint_type_button_label[3];
+    TTextPanel* paint_terrain_label;
+    TListPanel* paint_terrain_list;
+    TScrollBarPanel* paint_terrain_scrollbar;
+    TListPanel* paint_elevation_list;
+    TScrollBarPanel* paint_elevation_scrollbar;
+    TTextPanel* player_label;
+    TDropDownPanel* player_list;
+    TDropDownPanel* player_number_list;
+    TDropDownPanel* player_advance_civilization_drop;
+    TButtonPanel* player_advance_civilization_button;
+    TTextPanel* player_inven_label[5];
+    TEditPanel* player_inven_input[5];
+    TTextPanel* player_setting_label[2];
+    TTextPanel* player_starting_age_label;
+    TDropDownPanel* player_setting_drop[2];
+    TDropDownPanel* BuildList;
+    TDropDownPanel* CityLayout;
+    TDropDownPanel* AiRules;
+    TTextPanel* player_build_text;
+    TTextPanel* player_city_text;
+    TTextPanel* AiRules_text;
+    TDropDownPanel* unit_player_list;
+    TButtonPanel* unit_mode_select[4];
+    TTextPanel* unit_mode_select_label[4];
+    TListPanel* unit_list;
+    TScrollBarPanel* unit_scrollbar;
+    List_Info* unit_list_info;
+    TShape* button_unit_pics;
+    TShape* button_bldg_pics[5];
+    TRIBE_Scenario_Editor_Panel_Object* object_panel;
+    short unit_list_size;
+    TButtonPanel* victory_cond_on[6];
+    TButtonPanel* victory_and_or[2];
+    TTextPanel* victory_condition_label;
+    TTextPanel* victory_amount_label;
+    TTextPanel* victory_long_label;
+    TTextPanel* victory_text_and_or[2];
+    TTextPanel* victory_label_conquest;
+    TTextPanel* victory_label_explore;
+    TTextPanel* victory_label_explore_percent;
+    TTextPanel* victory_label_ruins;
+    TTextPanel* victory_label_artifacts;
+    TTextPanel* victory_label_discoveries;
+    TTextPanel* victory_label_gold;
+    TEditPanel* victory_condition_explore;
+    TEditPanel* victory_condition_ruins;
+    TEditPanel* victory_condition_artifacts;
+    TEditPanel* victory_condition_discoveries;
+    TEditPanel* victory_condition_gold;
+    TTextPanel* victory_cond_type_label[5];
+    TButtonPanel* victory_cond_type[5];
+    TTextPanel* victory_score_label;
+    TDropDownPanel* victory_score;
+    TTextPanel* victory_time_label;
+    TDropDownPanel* victory_time;
+    TButtonPanel* victory_button[12];
+    TDropDownPanel* victory_drop_down;
+    TDropDownPanel* victory_object_list;
+    TDropDownPanel* victory_player_list;
+    TDropDownPanel* victory_enemy_player_list;
+    TDropDownPanel* victory_attribute_list;
+    TDropDownPanel* victory_ages_list;
+    TDropDownPanel* victory_tech_list;
+    TButtonPanel* victory_button_set_object;
+    TButtonPanel* victory_button_set_destination;
+    TButtonPanel* victory_button_go_to_dest;
+    TTextPanel* victory_condition_text;
+    TTextPanel* victory_condition_type;
+    TTextPanel* victory_amount_text;
+    TTextPanel* victory_which_enemy_text;
+    TEditPanel* victory_amount_input;
+    TScrollBarPanel* victory_object_scrollbar;
+    TEditPanel* message_input;
+    TButtonPanel* message_button[5];
+    TTextPanel* message_button_label[5];
+    long current_message;
+    TTextPanel* cinematic_label[4];
+    TDropDownPanel* cinematic_input[4];
+    TTextPanel* options_label[1];
+    TButtonPanel* options_button[1];
+    TDropDownPanel* options_player_list;
+    TTextPanel* options_disable_tech_text;
+    TButtonPanel* options_disable_button[16];
+    TTextPanel* options_disable_text[16];
+    TTextPanel* Diplomacy_opponent_label[8];
+    TTextPanel* Diplomacy_player_text[8];
+    TDropDownPanel* Diplomacy_player_list;
+    TTextPanel* Diplomacy_status_label[4];
+    TButtonPanel* Diplomacy_friend_box[8][3];
+    TButtonPanel* Diplomacy_AlliedVictory[8];
+    TRIBE_World* world;
+    unsigned long update_interval;
+    unsigned long last_update_time;
+    unsigned long map_redraw_interval;
+    unsigned long last_map_redraw_time;
+    int changed_system_colors;
+    unsigned long save_text_color;
+    unsigned long save_window_color;
+
+    virtual ~TRIBE_Screen_Sed();
+    virtual void draw();
+    virtual long handle_size(long win_wid, long win_hgt);
+    virtual long handle_idle();
+    virtual long key_down_action(long key, short count, int alt_key, int ctrl_key, int shift_key);
+    virtual long action(TPanel* from_panel, long action_in, unsigned long action_val1, unsigned long action_val2);
+
+  protected:
+    virtual void set_focus(int have_focus_in);
+
+  public:
+    void position_panels();
+
+  protected:
+    int create_button(TPanel* parent, TButtonPanel** button, long text_id, int ButtonSelectFlag);
+    int create_button(TPanel* parent, TButtonPanel** button, char* text1, char* text2, char* text3, char* text4);
+    int create_text(TPanel* parent, TTextPanel** text_panel, long text_id);
+    int create_text(TPanel* parent, TTextPanel** text_panel, char* text);
+    int create_drop_down(TPanel* parent, TDropDownPanel** drop_panel);
+    int create_input(TPanel* parent, TInputPanel** input_panel, char* value, short max_len, TInputPanel::FormatType format_type);
+    int create_edit(
+        TPanel* parent, TEditPanel** edit_panel, char* value, short max_len, TEditPanel::FormatType format_type, int enable_ime,
+        int turn_ime_on
+    );
+    int create_list(TPanel* parent, TListPanel** list_panel, TScrollBarPanel** scrollbar_panel);
+    int create_radio_button(TPanel* parent, TButtonPanel** button);
+    int create_check_box(TPanel* parent, TButtonPanel** button);
+    int Set_player_advance_civilization_text(int newmode);
+    void SaveDisabledItemsInScenario();
+    void LoadDisabledItemsFromScenario();
+    void save_info_in_scenario();
+    void save_multi_victory_cond_in_scenario();
+
+  protected:
+    void save_victory_cond_in_scenario(int which);
+    void load_victory_cond_from_scenario(int which);
+    void load_multi_victory_cond_from_scenario();
+    void save_diplomacy_in_scenario(int which);
+    void load_diplomacy_from_scenario(int which);
+    void activate_victory_proper_fields(int TypeOfVictory, int activate);
+    void init_module_variables();
+    void create_all_buttons_etc();
+    int SetupListOfTerrain(TListPanel* list);
+    void activate_victory_panel(int activate);
+    int MakeFileList(
+        TDropDownPanel* drop_down, char* dir, char* extension, unsigned char append_none, unsigned char append_random
+    );
+    void SavePlayerActiveStatus();
+
+  protected:
+    void set_player(short val, unsigned char save_player, unsigned char load_player);
+    void set_map_type(MapType new_val, int activate_panels);
+    void set_mp_victory_type(VictoryType new_val, int activate_panels);
+    void set_paint_type(PaintType new_val, int activate_panels);
+    void set_unit_player(short val);
+
+  public:
+    void set_scenario_mode(ScenarioMode new_mode);
+
+  protected:
+    void set_panel_info();
+    void set_string(char* text, long text_id, int max_size);
+    void set_brush_size(BrushSize new_val);
+    void set_terrain(short val);
+    void set_elevation(short val);
+    void set_player_active(short player_num_in, int active_in);
+    void set_unit(short val);
+    void set_message_type(MessageType new_val, int activate_panels);
+    void set_paint_object_mode();
+
+  public:
+    int command_new_map(
+        char* scenario_name_in, int is_multi_player_in, int random_seed_in, int width, int height, int display_in
+    );
+    void command_cancel();
+    int command_menu();
+    void command_new();
+    void command_open();
+    void command_quit();
+    void command_save(unsigned char kill_menu, unsigned char quit_after_save);
+    void command_save_as(unsigned char quit_after_save);
+    void command_quick_save();
+    void command_player(int id);
+    void command_outline();
+    unsigned char need_to_save();
+    char* scenario_get_default_name();
+    char* scenario_save_defaulted();
+};
+
+typedef char scr_sed_screen_size_check[(sizeof(TRIBE_Screen_Sed) == 0x948) ? 1 : -1];
+
+#endif

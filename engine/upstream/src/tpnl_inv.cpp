@@ -1,0 +1,202 @@
+
+#include "../include/tpnl_inv.h"
+#include "../include/program_mode.h"
+#include "../include/Shape.h"
+#include "../include/tplayer.h"
+#include "../include/colorlog.h"
+#include "../include/resource_ids.h"
+#include <stdio.h>
+#include <string.h>
+
+static const char s_fmt_ld[] = "%ld";
+static char s_tpnl_inv_draw[] = "tpnl_inv::draw";
+
+// No current canonical owner header declares this C helper.
+
+TRIBE_Panel_Inven::TRIBE_Panel_Inven(TDrawArea* render_area_in, TPanel* parent_panel_in, void* font_in, TRIBE_Player* player_in) :
+    TPanel() {
+    this->font = font_in;
+    this->save_attr_num = 0;
+    this->save_attr = 0;
+    this->pics = 0;
+    this->idle_time = 0;
+    this->player = 0;
+    this->back_color = 0;
+    this->idle_interval = 500;
+    this->font_color = 0xFFFFFF;
+
+    if (this->setup(render_area_in, parent_panel_in, 0, 0, 0, 0, 0) == 0) {
+        this->error_code = 1;
+    } else {
+        this->set_player(player_in);
+    }
+}
+
+void TRIBE_Panel_Inven::set_text_color(unsigned long font_color_in, unsigned long back_color_in) {
+    this->font_color = font_color_in;
+    this->back_color = back_color_in;
+    this->set_redraw(TPanel::RedrawNormal);
+}
+
+TRIBE_Panel_Inven::~TRIBE_Panel_Inven() {
+    if (this->save_attr != 0) {
+        free(this->save_attr);
+        this->save_attr = 0;
+    }
+
+    if (this->pics != 0) {
+        delete this->pics;
+        this->pics = 0;
+    }
+
+    // The shipped body calls the base destructor. Compiler cleanup calls it
+    // again after this body.
+    this->TPanel::~TPanel();
+}
+
+void TRIBE_Panel_Inven::draw() {
+    char str[20];
+
+    if (this->render_area == 0 || this->visible == 0 || this->active == 0) {
+        this->need_redraw = TPanel::RedrawNone;
+        return;
+    }
+
+    if (this->parent_panel != 0)
+        this->parent_panel->draw_rect(&this->clip_rect);
+
+    if (this->player == 0) {
+        this->need_redraw = TPanel::RedrawNone;
+        return;
+    }
+
+    this->draw_setup(0);
+    if (this->render_area->GetDc(s_tpnl_inv_draw) != 0) {
+        void* old_font = SelectObject(this->render_area->DrawDc, this->font);
+        SetBkMode(this->render_area->DrawDc, TRANSPARENT);
+
+        long x = this->pnl_x + 0x20;
+        long y = this->pnl_y + 2;
+
+        sprintf(str, s_fmt_ld, (long) this->player->attributes[RGE_RESOURCE_WOOD]);
+        SetTextColor(this->render_area->DrawDc, this->back_color);
+        TextOutA(this->render_area->DrawDc, x - 1, y + 1, str, strlen(str));
+        SetTextColor(this->render_area->DrawDc, this->font_color);
+        TextOutA(this->render_area->DrawDc, x, y, str, strlen(str));
+
+        x = this->pnl_x + 0x63;
+        sprintf(str, s_fmt_ld, (long) this->player->attributes[RGE_RESOURCE_FOOD]);
+        SetTextColor(this->render_area->DrawDc, this->back_color);
+        TextOutA(this->render_area->DrawDc, x - 1, y + 1, str, strlen(str));
+        SetTextColor(this->render_area->DrawDc, this->font_color);
+        TextOutA(this->render_area->DrawDc, x, y, str, strlen(str));
+
+        x = this->pnl_x + 0xA6;
+        sprintf(str, s_fmt_ld, (long) this->player->attributes[RGE_RESOURCE_GOLD]);
+        SetTextColor(this->render_area->DrawDc, this->back_color);
+        TextOutA(this->render_area->DrawDc, x - 1, y + 1, str, strlen(str));
+        SetTextColor(this->render_area->DrawDc, this->font_color);
+        TextOutA(this->render_area->DrawDc, x, y, str, strlen(str));
+
+        x = this->pnl_x + 0xE9;
+        sprintf(str, s_fmt_ld, (long) this->player->attributes[RGE_RESOURCE_STONE]);
+        SetTextColor(this->render_area->DrawDc, this->back_color);
+        TextOutA(this->render_area->DrawDc, x - 1, y + 1, str, strlen(str));
+        SetTextColor(this->render_area->DrawDc, this->font_color);
+        TextOutA(this->render_area->DrawDc, x, y, str, strlen(str));
+
+        SelectObject(this->render_area->DrawDc, old_font);
+        this->render_area->ReleaseDc(s_tpnl_inv_draw);
+    }
+    this->draw_finish();
+}
+
+long TRIBE_Panel_Inven::handle_idle() {
+    this->TPanel::handle_idle();
+
+    int mode = rge_base_game->prog_mode;
+    if (mode == ProgModeGame || mode == ProgModeGameTempPaused || mode == ProgModeScenarioEditor || mode == ProgModeGameOver) {
+        unsigned long now = debug_timeGetTime("C:\\msdev\\work\\age1_x1\\tpnl_inv.cpp", 173);
+        if (now - this->idle_time >= (unsigned long) this->idle_interval) {
+            color_log(0xBA, 0xBA, 5);
+
+            int changed = 0;
+            short i = 0;
+            if (0 < this->save_attr_num) {
+                short* saved = this->save_attr;
+                float* values = this->player->attributes;
+                for (;;) {
+                    if (i >= this->save_attr_num)
+                        break;
+                    if ((short) (int) values[i] != saved[i]) {
+                        changed = true;
+                        break;
+                    }
+                    ++i;
+                }
+            }
+
+            if (changed) {
+                color_log(0xBA, 0x16, 5);
+                this->save_info();
+                this->set_redraw(TPanel::RedrawNormal);
+            }
+
+            this->idle_time = debug_timeGetTime("C:\\msdev\\work\\age1_x1\\tpnl_inv.cpp", 194);
+            color_log(0xBA, 0x5F, 5);
+        }
+    }
+    return 0;
+}
+
+void TRIBE_Panel_Inven::set_player(TRIBE_Player* player_in) {
+    this->player = player_in;
+    this->save_info();
+    this->set_redraw(TPanel::RedrawNormal);
+}
+
+void TRIBE_Panel_Inven::save_info() {
+    if (this->save_attr == 0 || this->save_attr_num != this->player->attribute_num) {
+        if (this->save_attr != 0) {
+            free(this->save_attr);
+            this->save_attr = 0;
+        }
+        this->save_attr_num = this->player->attribute_num;
+        this->save_attr = (short*) calloc((int) this->save_attr_num, 2);
+    }
+
+    for (int i = 0; i < this->save_attr_num; ++i)
+        this->save_attr[i] = (short) (int) this->player->attributes[i];
+}
+
+unsigned char TRIBE_Panel_Inven::get_help_info(char*& string, long& page, long x, long y) {
+    if (this->active == 0)
+        return 0;
+
+    if (!this->is_inside(x, y))
+        return 0;
+
+    if (x < this->pnl_x + 0x37) {
+        sprintf(
+            string, this->get_string(STRING_ID_HELP_INVENTORY_WOOD_FORMAT), (int) this->player->attributes[RGE_RESOURCE_WOOD]
+        );
+        page = -1;
+    } else if (x < this->pnl_x + 0x6E) {
+        sprintf(
+            string, this->get_string(STRING_ID_HELP_INVENTORY_FOOD_FORMAT), (int) this->player->attributes[RGE_RESOURCE_FOOD]
+        );
+        page = -1;
+    } else if (x < this->pnl_x + 0xA5) {
+        sprintf(
+            string, this->get_string(STRING_ID_HELP_INVENTORY_GOLD_FORMAT), (int) this->player->attributes[RGE_RESOURCE_GOLD]
+        );
+        page = -1;
+    } else {
+        sprintf(
+            string, this->get_string(STRING_ID_HELP_INVENTORY_STONE_FORMAT), (int) this->player->attributes[RGE_RESOURCE_STONE]
+        );
+        page = -1;
+    }
+
+    return 1;
+}

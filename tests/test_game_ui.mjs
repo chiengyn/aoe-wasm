@@ -1,0 +1,58 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+import createEngine from '../engine/build/core-probe.mjs';
+import {DatCore} from './lib/dat-core.mjs';
+import {EngineSession} from './lib/engine-session.mjs';
+const root=new URL('../',import.meta.url),read=p=>fs.readFileSync(new URL(p,root)),json=p=>JSON.parse(read(p)),sha=b=>createHash('sha256').update(b).digest('hex');
+const v=json('web/game/versions.json').find(v=>v.key==='ror'),raw=read('web/'+v.url),strings=json('web/'+v.strings),wasmBinary=read('engine/build/core-probe.wasm');
+const dat=new DatCore((await WebAssembly.instantiate(read('formats/build/dat.wasm'))).instance).load(raw);
+const room={seed:12345,settings:[0,4,1,1,0,0,50,0,0,0,0,0,2,0],players:[{slot:1,name:'Host',civ:1,color:1,team:1},{slot:2,name:'Guest',civ:2,color:2,team:1}]};
+let checks=0;const eq=(a,b,message)=>{assert.deepEqual(a,b,message);checks++;};
+const sessions=[],modules=[],orders=[],events=[];
+const label=(m,i)=>m.ccall('game_ui_button_text','string',['number'],[i]);
+const modal=m=>m.ccall('game_ui_modal','string',[],[]);
+const find=(m,text)=>{m._game_ui_draw();for(let i=0;i<m._game_ui_button_count();i++)if(label(m,i)===text)return i;throw new Error('Missing native button '+text);};
+for(const me of [1,2]){
+ let m;const textCalls=[];const menuHost={cursor(){},begin(){},text(font,ptr,length,x,y){textCalls.push({text:new TextDecoder().decode(m.HEAPU8.subarray(ptr,ptr+length)),x,y});},present(){},measure(font,text,len,field){let size=Math.abs(m.HEAP32[font/4]);return field===0?Math.round(len*size*.55):field===1?size+4:size;}};
+ let packets=[];m=await createEngine({wasmBinary,menuHost,nativeCommand:bytes=>packets.push(bytes),gameStrings:strings,gameUIEvent:(kind,value)=>events.push({kind,value}),print:()=>{},printErr:console.error});
+ for(const dir of ['/data','/data2','/savegame','/c'])m.FS.mkdir(dir);
+ m.FS.writeFile('/empires.dat',raw);assert.equal(m.ccall('engine_probe_load','number',['string'],['/empires.dat']),1);
+ const s=new EngineSession(m,dat);s.startMultiplayer(room,me);m._engine_mp_perspective(me);sessions.push(s);modules.push(m);orders.push(packets);
+ for(const a of json('web/game/manifest.json').archives.filter(a=>['data/Interfac.drs','data2/Interfac.drs'].includes(a.path)))m.FS.writeFile('/'+a.path,read('web/'+a.url));
+ eq(m._game_ui_init(800,600),1,'Native game UI initializes');
+ eq(Array.from({length:4},(_,i)=>m._game_ui_rect(0,i)),[0,20,800,454]);
+ m._game_ui_draw();m._game_ui_key(72,0,0,0);m._game_ui_draw();
+ const town=s.snapshot().objects.find(o=>o.player===me&&o.master===109);
+ eq(m._game_ui_selected(0),town.id,'H selects own town center');
+ m._game_ui_activate(find(m,'Create'));eq(packets.length,1);eq(packets[0][0],119);
+ m._game_ui_key(121,1,0,0);m._game_ui_draw();eq(modal(m),'Menu Dialog');eq(m._game_ui_button_count(),8);
+ m._game_ui_activate(find(m,'Quit Game'));m._game_ui_draw();eq(modal(m),'QuitGameDialog');
+ m._game_ui_activate(find(m,'No'));m._game_ui_draw();eq(modal(m),'');
+ m._game_ui_key(121,1,0,0);m._game_ui_draw();m._game_ui_key(27,0,0,0);m._game_ui_draw();eq(modal(m),'','Escape closes native menu');
+ m._game_ui_key(13,0,0,0);m._game_ui_draw();eq(modal(m),'Send Quick Message Dialog');
+ m.ccall('game_ui_chat_send',null,['string'],['hello']);m._game_ui_draw();eq(events.at(-1),{kind:'chat',value:'hello'});eq(modal(m),'');
+ m.ccall('game_ui_message',null,['string'],['Host: multiplayer chat']);textCalls.length=0;m._game_ui_draw();assert.ok(textCalls.some(c=>c.text==='Host: multiplayer chat'&&c.y>=20&&c.y<474));checks++;
+ for(const key of [115,115,116,116,122]){m._game_ui_key(key,0,0,0);m._game_ui_draw();checks++;}m._engine_mp_pause(1);m._game_ui_draw();m._engine_mp_pause(0);
+ const villager=s.snapshot().objects.find(o=>o.player===me&&o.master===83);
+ m._game_ui_select(villager.id,0);m._game_ui_key(49,0,1,0);m._game_ui_select(-1,0);m._game_ui_key(49,0,0,0);
+ eq(m._game_ui_selected(0),villager.id,'Control group restores own selection');
+ m._game_ui_key(66,0,0,0);m._game_ui_draw();eq(m._game_ui_mode(),6,'B opens build menu');
+ m._game_ui_key(69,0,0,0);m._game_ui_draw();eq(m._game_ui_mode(),7,'E selects house');eq(m._game_ui_placing(),70);
+ m._game_ui_key(27,0,0,0);m._game_ui_draw();eq(m._game_ui_mode(),0,'Escape leaves placement');
+ m._game_ui_camera(0,0);m._game_ui_key(32,0,0,0);
+ assert.ok(Math.abs(m._game_ui_view(0)-villager.x)<1);checks++;
+}
+const {executeNativeOrder}=await import('./lib/native-orders.mjs');
+for(let player=1;player<=2;player++)for(const session of sessions)eq(executeNativeOrder(session,orders[player-1][0],player),true,'Native UI packet executes on both peers');
+eq(executeNativeOrder(sessions[0],orders[1][0],1),false,'Foreign training command rejected');
+eq(executeNativeOrder(sessions[0],[119],1),false,'Truncated packet rejected');
+eq(executeNativeOrder(sessions[0],[255,0,0,0],1),false,'Unknown packet rejected');
+for(let turn=0;turn<350;turn++){
+ for(const session of sessions)session.tick(2);
+ eq(sessions[0].snapshot().objects,sessions[1].snapshot().objects,'Native UI changes must not desynchronize world');
+ eq([0,1,2].map(f=>modules[0]._engine_mp_checksum(f)),[0,1,2].map(f=>modules[1]._engine_mp_checksum(f)),'Original shared-state checksum agrees');
+}
+for(let player=1;player<=2;player++)eq(sessions[0].snapshot().objects.filter(o=>o.player===player&&o.master===83).length,4,'Native training creates a villager');
+const report={passed:true,checks,wasmSha256:sha(wasmBinary),scope:'Two native multiplayer HUDs; menu/quit cancel, Escape, quick chat, clock, pause, H, Space, control groups; authenticated native UI training packets, 350 lockstep turns and original checksums.'};
+fs.writeFileSync(new URL('reports/game-ui-tests.json',root),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));

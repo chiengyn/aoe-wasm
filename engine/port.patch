@@ -1,0 +1,876 @@
+--- a/src/Command.cpp
++++ b/src/Command.cpp
+@@ -829,6 +829,12 @@
+ }
+ 
+ void RGE_Command::submit(void* order, long order_size) {
++#ifdef __EMSCRIPTEN__
++    extern int wasm_capture_order(const void*,int);
++    // UI-generated orders enter the browser lockstep transport. They are only
++    // executed after the authoritative turn is received on every peer.
++    if(wasm_capture_order(order,order_size)){free(order);return;}
++#endif
+     unsigned char dup = check_for_duplicate_orders((unsigned char*) order, order_size);
+     if (dup == 0) {
+         com_hand->new_command(order, order_size);
+@@ -1415,7 +1421,7 @@
+     packet->waypoint[0].y = y;
+     packet->waypoint[0].z = z;
+     RGE_Static_Object* obj = this->world->object(recipient);
+-    char* name = obj != 0 ? obj->master_obj->name : "X";
++    const char* name = obj != 0 ? obj->master_obj->name : "X";
+     L->Log("      >SEND CMD ADD WAY2 (PLR=%d,REC=%s)", playerID, name);
+     this->submit(packet, sizeof(RGE_Command_Add_Waypoint));
+ }
+--- a/src/Dib.cpp
++++ b/src/Dib.cpp
+@@ -21,7 +21,7 @@
+ extern "C" int __cdecl atoi(const char*);
+ 
+ #pragma function(memcpy)
+-extern "C" void* __cdecl memcpy(void*, const void*, unsigned int);
++// WASM: canonical CRT declaration from port_prefix.h.
+ 
+ void __cdecl DibBlt(
+     BITMAPINFO256* DestInfo, uchar* DestBits, RECT* ClipRect, long DestX, long DestY, long DestWid, long DestHgt,
+@@ -683,8 +683,12 @@
+         if (ResourceId) {
+             hpal = CreatePalette((const tagLOGPALETTE*) lp);
+             if (MakeIdentity) {
++                // WASM presents a full private palette on a true-color canvas;
++                // there is no Windows desktop palette to reserve/remap.
++#ifndef __EMSCRIPTEN__
+                 if (rge_base_game->draw_system->DrawType == 1 || rge_base_game->draw_system->ScreenMode == 1)
+                     CreateIdentityPalette(hpal);
++#endif
+             }
+         }
+         free(lp);
+@@ -1315,7 +1319,7 @@
+ 
+ namespace {
+ 
+-extern "C" static void __cdecl memmove(unsigned char* d, unsigned char* s, long len) {
++static void dib_memmove(unsigned char* d, unsigned char* s, long len) {
+     int count;
+ 
+     d = d + len - 1;
+--- a/src/Picture.cpp
++++ b/src/Picture.cpp
+@@ -2,7 +2,7 @@
+ #include "../include/Picture.h"
+ #include "../include/Shape.h"
+ #include "../include/Res_file.h"
+-#include "../include/Dib.h"
++#include "../include/dib.h"
+ 
+ #include <io.h>
+ #include <stdio.h>
+--- a/src/Pnl_msg.cpp
++++ b/src/Pnl_msg.cpp
+@@ -4,8 +4,8 @@
+ #include "../include/rge_base_game_global.h"
+ #include <string.h>
+ 
+-extern "C" int strncmp(const char*, const char*, unsigned int);
+-extern "C" char* strncpy(char*, const char*, unsigned int);
++// WASM: CRT declaration supplied by port_prefix.h.
++// WASM: CRT declaration supplied by port_prefix.h.
+ unsigned long __cdecl debug_timeGetTime(char*, int);
+ 
+ TMessagePanel::TMessagePanel(void* font_in, long font_wid_in, long font_hgt_in) :
+--- a/src/Res_file.cpp
++++ b/src/Res_file.cpp
+@@ -16,11 +16,11 @@
+ extern "C" int __cdecl _open(const char* path, int flags, ...);
+ extern "C" int __cdecl sprintf(char* buf, const char* fmt, ...);
+ #ifndef _INC_IO
+-extern "C" int __cdecl lseek(int fd, int offset, int whence);
++// WASM: canonical CRT declaration from port_prefix.h.
+ #endif
+-extern "C" int __cdecl read(int fd, void* buf, unsigned size);
+-extern "C" int __cdecl close(int fd);
+-extern "C" int __cdecl write(int fd, const void* buf, unsigned size);
++// WASM: canonical CRT declaration from port_prefix.h.
++// WASM: canonical CRT declaration from port_prefix.h.
++// WASM: canonical CRT declaration from port_prefix.h.
+ 
+ void __cdecl RESFILE_open_new_resource_file(char* resFileName, char* password, char* path, int open_mode) {
+     char resFile[260];
+@@ -80,7 +80,7 @@
+         lseek(fHandle, 0, 1);
+         if (read(fHandle, &rHeader, 64) != 0x40) {
+             // clang-format off
+-            __asm int 3
++            __builtin_trap();
+             MessageBoxA(0, "Error: Reading resfile header.", "RESOURCE ERROR", MB_ICONEXCLAMATION);
+             // clang-format on
+             return;
+--- a/src/Shape.cpp
++++ b/src/Shape.cpp
+@@ -6,6 +6,7 @@
+ #include "../include/colorlog.h"
+ #include <string.h>
+ #include <memory.h>
++#include "../../platform/menu_host.h"
+ 
+ // VC5 declaration-phase padding; see workflow/vc5_lessons.md.
+ struct vc5_phase_0;
+@@ -31,12 +32,12 @@
+ #pragma function(memcpy)
+ #pragma function(memset)
+ 
+-extern "C" int __cdecl open(const char*, int);
+-extern "C" int __cdecl lseek(int, int, int);
+-extern "C" int __cdecl tell(int);
+-extern "C" void* __cdecl malloc(unsigned int);
+-extern "C" int __cdecl read(int, void*, unsigned int);
+-extern "C" int __cdecl close(int);
++// WASM: CRT declaration supplied by port_prefix.h.
++// WASM: canonical CRT declaration from port_prefix.h.
++// Port: declaration supplied by platform/CRT headers.
++// WASM: CRT declaration supplied by port_prefix.h.
++// WASM: canonical CRT declaration from port_prefix.h.
++// WASM: canonical CRT declaration from port_prefix.h.
+ extern "C" void __cdecl free(void*);
+ extern void __cdecl addstring(char**, char*, char*);
+ extern int shape_version_110;
+--- a/src/Sounddrv.cpp
++++ b/src/Sounddrv.cpp
+@@ -15,9 +15,9 @@
+ extern "C" unsigned int __cdecl ds_stream_messages(void* a, unsigned int b, unsigned int c, long d);
+ extern "C" int __cdecl sprintf(char* buffer, const char* format, ...);
+ extern "C" int __cdecl _open(const char* path, int flags, ...);
+-extern "C" int __cdecl close(int fd);
+-extern "C" unsigned int __cdecl read(int fd, void* buffer, unsigned int count);
+-extern "C" int __cdecl strncmp(const char* left, const char* right, unsigned int count);
++// WASM: canonical CRT declaration from port_prefix.h.
++// WASM: canonical CRT declaration from port_prefix.h.
++// WASM: canonical CRT declaration from port_prefix.h.
+ extern void __cdecl color_log(unsigned char a, unsigned char b, int c);
+ 
+ struct _tag_wavheader {
+--- a/src/asp_list.cpp
++++ b/src/asp_list.cpp
+@@ -4,7 +4,7 @@
+ #include "../include/stat_obj.h"
+ 
+ #include "../include/rge_fio.h"
+-extern "C" void* __cdecl calloc(unsigned int count, unsigned int size);
++// WASM: CRT declaration supplied by port_prefix.h.
+ extern "C" void __cdecl free(void* block);
+ 
+ RGE_Active_Sprite_List::RGE_Active_Sprite_List(RGE_Static_Object* owner_in) {
+--- a/src/basegame.cpp
++++ b/src/basegame.cpp
+@@ -2160,7 +2160,7 @@
+ 
+ int RGE_Base_Game::check_expiration() {
+     struct tm kill_def;
+-    long cur_date;
++    time_t cur_date;
+     long expiration_time;
+ 
+     memset(&kill_def, 0, sizeof(kill_def));
+--- a/src/campaign.cpp
++++ b/src/campaign.cpp
+@@ -12,15 +12,15 @@
+ 
+ // These declarations expose the period CRT and executable helper interfaces.
+ extern "C" int __cdecl sprintf(char*, const char*, ...);
+-extern "C" int __cdecl open(const char*, int);
++// WASM: CRT declaration supplied by port_prefix.h.
+ extern "C" int __cdecl _open(const char*, int, ...);
+-extern "C" int __cdecl read(int, void*, int);
+-extern "C" int __cdecl write(int, void*, int);
+-extern "C" int __cdecl close(int);
+-extern "C" int __cdecl lseek(int, int, int);
+-extern "C" int __cdecl _lseek(int, int, int);
++// WASM: canonical CRT declaration from port_prefix.h.
++// WASM: canonical CRT declaration from port_prefix.h.
++// WASM: canonical CRT declaration from port_prefix.h.
++// WASM: canonical CRT declaration from port_prefix.h.
++// Port: declaration supplied by platform/CRT headers.
+ extern "C" long __cdecl _tell(int);
+-extern "C" void* __cdecl calloc(unsigned int, unsigned int);
++// WASM: CRT declaration supplied by port_prefix.h.
+ extern "C" void __cdecl free(void*);
+ extern int __cdecl rge_fake_open(int, int);
+ 
+--- a/src/com_hand.cpp
++++ b/src/com_hand.cpp
+@@ -3586,6 +3586,10 @@
+ }
+ 
+ int TCommunications_Handler::IsHost(void) {
++#ifdef __EMSCRIPTEN__
++    extern int wasm_lobby_role;
++    if (wasm_lobby_role >= 0) return wasm_lobby_role;
++#endif
+     if (Multiplayer != 0) {
+         return MeHost;
+     }
+--- a/src/debuglog.cpp
++++ b/src/debuglog.cpp
+@@ -170,7 +170,7 @@
+     va_end(args);
+ 
+     unsigned long ticks = GetTickCount();
+-    long ltime;
++    time_t ltime;
+     char s2[32];
+     char s3[32];
+     char s4[32];
+--- a/src/drawarea.cpp
++++ b/src/drawarea.cpp
+@@ -1,4 +1,7 @@
+ #include "../include/drawarea.h"
++#ifdef __EMSCRIPTEN__
++#include "../../platform/menu_host.h"
++#endif
+ #include "../include/asm_draw.h"
+ #include "../include/color.h"
+ #include "../include/game_globals.h"
+@@ -22,12 +25,12 @@
+     int, int
+ );
+ extern "C" int __cdecl _open(const char*, int, ...);
+-extern "C" int __cdecl write(int, void*, int);
+-extern "C" int __cdecl close(int);
+-extern "C" void* __cdecl malloc(unsigned int);
++// WASM: canonical CRT declaration from port_prefix.h.
++// WASM: canonical CRT declaration from port_prefix.h.
++// WASM: CRT declaration supplied by port_prefix.h.
+ extern "C" void __cdecl free(void*);
+-extern void* __cdecl calloc(unsigned int, unsigned int);
+-extern void* __cdecl operator new(unsigned int);
++// WASM: canonical CRT declaration from port_prefix.h.
++extern void* __cdecl operator new(size_t);
+ #pragma function(memset)
+ 
+ TDrawSystem::TDrawSystem() {
+@@ -976,6 +979,9 @@
+ }
+ 
+ TDrawArea::~TDrawArea() {
++#ifdef __EMSCRIPTEN__
++    if (DrawSystem && DrawSystem->DrawType == 1) { free(Bits); Bits=0; DrawDc=0; }
++#endif
+     DrawAreaNode* node = this->Node;
+     if (node != 0) {
+         TDrawSystem* draw_system = this->DrawSystem;
+@@ -1063,7 +1069,9 @@
+         }
+ 
+         if (this->DrawSystem->DrawType == 1) {
++#ifndef __EMSCRIPTEN__
+             return 0;
++#endif
+         }
+     }
+ 
+@@ -1202,6 +1210,22 @@
+     DDSURFACEDESC ddsd;
+     DDBLTFX ddbltfx;
+     TDrawSystem* draw_system = this->DrawSystem;
++#ifdef __EMSCRIPTEN__
++    if (draw_system && draw_system->DrawType == 1) {
++        if (wid_in > 8192 || hgt_in > 8192) abort();
++        // Native child panels allocate their save surface before layout.
++        // Match the DirectDraw branch's minimum-size allocation.
++        if(wid_in<1)wid_in=1;if(hgt_in<1)hgt_in=1;
++        free(Bits); Pitch=(wid_in+3)&~3; Width=wid_in; Height=hgt_in; Orien=1;
++        ExtendedLines=ExtendSurface;
++        Bits=(unsigned char*)calloc(Pitch,hgt_in+(ExtendSurface?10:0));
++        if (!Bits) abort();
++        BitmapInfo->bmiHeader.biSize=40; BitmapInfo->bmiHeader.biWidth=Width;
++        BitmapInfo->bmiHeader.biHeight=-(hgt_in+(ExtendSurface?10:0));
++        BitmapInfo->bmiHeader.biPlanes=1; BitmapInfo->bmiHeader.biBitCount=8;
++        DrawDc=wasm_menu_dc(); SetAccessOffsets(); SetClipRect(0);
++    }
++#endif
+ 
+     if (draw_system != 0 && draw_system->DrawType != 1) {
+         if (this->DrawSystem != 0 && this->DrawSystem->DirDraw != 0 && wid_in != 0 && hgt_in != 0
+--- a/src/game_globals.cpp
++++ b/src/game_globals.cpp
+@@ -2,9 +2,9 @@
+ #include "../include/dsutil.h"
+ #include "../include/Res_file.h"
+ #include "../include/visible.h"
+-#include "../include/Panel.h"
++#include "../include/panel.h"
+ #include "../include/view.h"
+-#include "../include/Dib.h"
++#include "../include/dib.h"
+ #include "../include/tribegam.h"
+ 
+ struct PLAYER_SCORE;
+--- a/src/getdxver.cpp
++++ b/src/getdxver.cpp
+@@ -51,7 +51,7 @@
+             }
+ 
+             {
+-                void* DirectInputCreateA = GetProcAddress(DIHinst, "DirectInputCreateA");
++                FARPROC DirectInputCreateA = GetProcAddress(DIHinst, "DirectInputCreateA");
+                 FreeLibrary(DIHinst);
+                 if (DirectInputCreateA == 0) {
+                     OutputDebugStringA("Couldn't GetProcAddress DInputCreate\r\n");
+@@ -134,7 +134,7 @@
+             return;
+         }
+ 
+-        void* DirectInputCreateA = GetProcAddress(DIHinst, "DirectInputCreateA");
++        FARPROC DirectInputCreateA = GetProcAddress(DIHinst, "DirectInputCreateA");
+         FreeLibrary(DIHinst);
+         if (DirectInputCreateA == 0) {
+             FreeLibrary(DDHinst);
+--- a/src/music.cpp
++++ b/src/music.cpp
+@@ -17,8 +17,8 @@
+ typedef MCIERROR(WINAPI* MCI_SEND_COMMAND_PROC)(MCIDEVICEID, UINT, DWORD, DWORD);
+ 
+ extern unsigned long debug_timeGetTime(char* file, int line);
+-extern "C" int __cdecl open(const char*, int);
+-extern "C" int __cdecl close(int);
++// WASM: canonical CRT declaration from port_prefix.h.
++// WASM: canonical CRT declaration from port_prefix.h.
+ 
+ TMusic_System::TMusic_System(
+     unsigned char music_type_in, void* instance_in, void* window_in, TSound_Driver* sound_system_in, char* path_in
+--- a/src/pathsys.cpp
++++ b/src/pathsys.cpp
+@@ -12,7 +12,7 @@
+ #include "../include/panel.h"
+ 
+ extern void operator delete(void* ptr);
+-extern void* operator new(unsigned int size, void* ptr);
++// WASM: standard placement new from <new>.
+ extern int DiagionalDistance[256];
+ extern unsigned char ObstructionValueShift[4];
+ extern unsigned char ObstructionValueMask[4];
+--- a/src/pnl_btn.cpp
++++ b/src/pnl_btn.cpp
+@@ -178,7 +178,7 @@
+ 
+ #include <string.h>
+ 
+-extern "C" void* __cdecl calloc(unsigned int count, unsigned int size);
++// WASM: canonical CRT declaration from port_prefix.h.
+ 
+ void TButtonPanel::set_text(short state_in, char* text_in) {
+     if (text1[state_in] != 0) {
+--- a/src/rge_fio.cpp
++++ b/src/rge_fio.cpp
+@@ -1,15 +1,15 @@
+ 
+ #include "../include/rge_fio.h"
+ 
+-extern "C" int __cdecl open(const char* path, int mode, ...);
+-extern "C" int __cdecl lseek(int file, int offset, int origin);
+-extern "C" int __cdecl tell(int file);
+-extern "C" int __cdecl read(int file, void* buffer, unsigned int size);
+-extern "C" int __cdecl write(int file, const void* buffer, unsigned int size);
+-extern "C" int __cdecl close(int file);
+-extern "C" void* __cdecl calloc(unsigned int count, unsigned int size);
++// WASM: canonical CRT declaration from port_prefix.h.
++// WASM: canonical CRT declaration from port_prefix.h.
++// WASM: tell is declared by platform/io.h.
++// WASM: canonical CRT declaration from port_prefix.h.
++// WASM: canonical CRT declaration from port_prefix.h.
++// WASM: canonical CRT declaration from port_prefix.h.
++// WASM: CRT declaration supplied by port_prefix.h.
+ extern "C" void __cdecl free(void* pointer);
+-extern "C" void* __cdecl memcpy(void* destination, const void* source, unsigned int size);
++// WASM: CRT declaration supplied by port_prefix.h.
+ #pragma intrinsic(memcpy)
+ 
+ extern "C" int __cdecl Inf32BufSize();
+--- a/src/rmm_land.cpp
++++ b/src/rmm_land.cpp
+@@ -12,7 +12,7 @@
+     this->info = *in_info;
+ }
+ 
+-extern "C" void* memset(void* dst, int value, unsigned int size);
++// WASM: CRT declaration supplied by port_prefix.h.
+ 
+ unsigned char RGE_RMM_Land_Generator::generate() {
+     clear_stack();
+--- a/src/rmm_obj.cpp
++++ b/src/rmm_obj.cpp
+@@ -246,7 +246,7 @@
+     }
+ }
+ 
+-extern "C" void* __cdecl memset(void*, int, unsigned int);
++// WASM: CRT declaration supplied by port_prefix.h.
+ 
+ void RGE_RMM_Object_Generator::place_avoid_objects(RGE_Object_Info_Line& info_line, long inner_radius) {
+     long y;
+--- a/src/scenario.cpp
++++ b/src/scenario.cpp
+@@ -17,11 +17,11 @@
+ extern "C" {
+ int __cdecl sprintf(char* buffer, const char* format, ...);
+ int __cdecl _open(const char* filename, int oflag, ...);
+-int __cdecl _write(int fd, const void* buffer, unsigned int count);
++// Port: declaration supplied by platform/CRT headers.
+ int __cdecl _close(int fd);
+-int __cdecl lseek(int fd, long offset, int origin);
++// Port: declaration supplied by platform/CRT headers.
+ long __cdecl _tell(int fd);
+-int __cdecl read(int fd, void* buffer, unsigned int count);
++// Port: declaration supplied by platform/CRT headers.
+ int __cdecl close(int fd);
+ int __cdecl strcmp(const char* left, const char* right);
+ char* __cdecl strcpy(char* destination, const char* source);
+@@ -33,7 +33,7 @@
+ void __cdecl rge_write(int fd, void* buffer, int count);
+ void __cdecl getstring(char** destination, char* source);
+ void __cdecl addstring(char** destination, char* old_text, char* append);
+-void* __cdecl operator new(unsigned int size);
++void* __cdecl operator new(size_t size);
+ void __cdecl operator delete(void* block);
+ RGE_Scenario_Header::RGE_Scenario_Header(RGE_Scenario* scenario_info) {
+     this->error_code = 0;
+--- a/src/scr_mp.cpp
++++ b/src/scr_mp.cpp
+@@ -5,7 +5,7 @@
+ #include "../include/game_globals.h"
+ #include "../include/resource_ids.h"
+ #include "../include/scr_mp.h"
+-#include "../include/Pnl_btn.h"
++#include "../include/pnl_btn.h"
+ #include "../include/pnl_lst.h"
+ #include "../include/pnl_edit.h"
+ #include "../include/Pnl_scbr.h"
+--- a/src/spanlist.cpp
++++ b/src/spanlist.cpp
+@@ -21,11 +21,11 @@
+ struct vc5_phase_10;
+ struct vc5_phase_11;
+ 
+-extern "C" void* __cdecl malloc(unsigned int size);
++// WASM: CRT declaration supplied by port_prefix.h.
+ extern "C" int __cdecl abs(int);
+-extern "C" int __cdecl open(const char* path, int flags, ...);
+-extern "C" int __cdecl close(int fd);
+-extern "C" int __cdecl write(int fd, const void* buf, unsigned int count);
++// WASM: canonical CRT declaration from port_prefix.h.
++// WASM: canonical CRT declaration from port_prefix.h.
++// WASM: canonical CRT declaration from port_prefix.h.
+ 
+ TSpan_Node_List::TSpan_Node_List(int InitialSize, int GrowSize, int szitem) :
+     Free_Pool_Zone(-1), Free_Pool_Index(-1), Zone_Ptrs(0), Zone_Size_Ptrs(0), Used_Zones(0), Free_Head(0), Total_Blocks(0),
+--- a/src/taiinfmd.cpp
++++ b/src/taiinfmd.cpp
+@@ -155,7 +155,7 @@
+         }
+     }
+ 
+-    for (k = 0; k < 4; k++) {
++    for (int k = 0; k < 4; k++) {
+         this->resources[k] = 0;
+         this->maxResources[k] = 0;
+         this->numResources[k] = 0;
+--- a/src/taistrmd.cpp
++++ b/src/taistrmd.cpp
+@@ -244,7 +244,7 @@
+ }
+ 
+ extern "C" int __cdecl strcmp(const char* left, const char* right);
+-extern "C" unsigned int __cdecl strlen(const char* text);
++// WASM: CRT declaration supplied by port_prefix.h.
+ extern "C" int __cdecl sprintf(char* buffer, const char* format, ...);
+ extern "C" FILE* __cdecl fopen(const char* filename, const char* mode);
+ extern "C" char* __cdecl fgets(char* buffer, int count, FILE* stream);
+@@ -924,7 +924,7 @@
+ TribeStrategyAIModule::~TribeStrategyAIModule() {
+ }
+ 
+-extern void* __cdecl operator new(unsigned int size);
++extern void* __cdecl operator new(size_t size);
+ extern void __cdecl operator delete(void* pointer);
+ 
+ int TribeStrategyAIModule::update(int timeLimit) {
+@@ -1011,7 +1011,7 @@
+ #include <string.h>
+ 
+ void __cdecl rge_write(int fd, void* data, int size);
+-void* __cdecl operator new(unsigned int size);
++void* __cdecl operator new(size_t size);
+ void __cdecl operator delete(void* p);
+ 
+ int TribeStrategyAIModule::save(int outfile) {
+@@ -1102,7 +1102,7 @@
+     return this->ruleSetNameValue;
+ }
+ 
+-char* strncpy(char* dest, const char* src, unsigned int count);
++// WASM: use <string.h> size_t declaration.
+ 
+ int TribeStrategyAIModule::loadRules(char* rName) {
+     if (rName == 0) {
+--- a/src/taitacmd.cpp
++++ b/src/taitacmd.cpp
+@@ -1859,7 +1859,7 @@
+     this->md = m;
+ }
+ 
+-void* __cdecl operator new(unsigned int size);
++void* __cdecl operator new(size_t size);
+ void __cdecl operator delete(void* ptr);
+ 
+ int TribeTacticalAIModule::save(int outfile) {
+@@ -8065,7 +8065,7 @@
+     }
+ }
+ 
+-void* __cdecl operator new(unsigned int size);
++void* __cdecl operator new(size_t size);
+ 
+ TacticalAIGroup* TribeTacticalAIModule::createGroup(int initID) {
+     TacticalAIGroup* group;
+@@ -8359,7 +8359,7 @@
+     return total;
+ }
+ 
+-void* __cdecl operator new(unsigned int size);
++void* __cdecl operator new(size_t size);
+ void __cdecl operator delete(void* ptr);
+ 
+ int TribeTacticalAIModule::numberItemsToAttack() {
+@@ -9576,7 +9576,7 @@
+     return this->desiredGathererDistribution[this->neededResourceValue[n]];
+ }
+ 
+-void* operator new(unsigned int size);
++void* operator new(size_t size);
+ void operator delete(void* ptr);
+ void TribeTacticalAIModule::taskElephantGatherers(int mainHunterID, int numberToTask, int targetID) {
+     RGE_Static_Object* targetObject = this->md->object(targetID);
+@@ -9634,7 +9634,7 @@
+     }
+ }
+ 
+-void* operator new(unsigned int size);
++void* operator new(size_t size);
+ void operator delete(void* ptr);
+ 
+ void TribeTacticalAIModule::checkTradeBoats() {
+--- a/src/taunt.cpp
++++ b/src/taunt.cpp
+@@ -6,7 +6,7 @@
+ #include <stdlib.h>
+ #include <string.h>
+ 
+-extern "C" int __cdecl _strnicmp(const char*, const char*, unsigned int);
++// WASM: canonical CRT declaration from port_prefix.h.
+ // These anonymous literals are the !MUTE and !NOMUTE command strings.
+ 
+ void __cdecl operator delete(void* ptr);
+--- a/src/tcommand.cpp
++++ b/src/tcommand.cpp
+@@ -539,8 +539,8 @@
+     }
+ }
+ 
+-extern "C" TDebuggingLog* L;
+-extern "C" void* __cdecl calloc(size_t num, size_t size);
++extern TDebuggingLog* L;
++// WASM: canonical CRT declaration from port_prefix.h.
+ 
+ void TRIBE_Command::command_make(RGE_Static_Object* unit, short obj_id) {
+     if (unit) {
+@@ -875,7 +875,7 @@
+     }
+ }
+ 
+-extern "C" void* __cdecl calloc(size_t, size_t);
++// WASM: canonical CRT declaration from port_prefix.h.
+ 
+ void TRIBE_Command::command_cheat(short player, short cheat_code) {
+     TRIBE_Command_Game* buf = (TRIBE_Command_Game*) calloc(1, sizeof(TRIBE_Command_Game));
+@@ -926,7 +926,7 @@
+     }
+ }
+ 
+-extern void* __cdecl calloc(unsigned int, unsigned int);
++// WASM: canonical CRT declaration from port_prefix.h.
+ 
+ void TRIBE_Command::command_trade_attribute(int unitID, int playerID, long attribute) {
+     TRIBE_Command_Trade_Attribute* buf =
+@@ -943,7 +943,7 @@
+     }
+ }
+ 
+-extern "C" void* __cdecl calloc(size_t count, size_t size);
++// WASM: canonical CRT declaration from port_prefix.h.
+ 
+ void TRIBE_Command::command_repair(RGE_Static_Object** unit, short unit_count, RGE_Static_Object* target) {
+     int object_count = (int) unit_count;
+--- a/src/tribegam.cpp
++++ b/src/tribegam.cpp
+@@ -1,3 +1,4 @@
++#include <time.h>
+ #include "../include/com_hand.h"
+ #include "../include/program_mode.h"
+ #include "../include/tribegam.h"
+@@ -94,10 +95,10 @@
+ _iobuf* __cdecl fopen(const char* path, const char* mode);
+ int __cdecl fclose(_iobuf* file);
+ int __cdecl fprintf(_iobuf* file, const char* fmt, ...);
+-long __cdecl time(long* t);
+-char* __cdecl ctime(const long* t);
+-char* __cdecl strncpy(char* dest, const char* src, unsigned int count);
+-void* __cdecl memset(void* dest, int value, unsigned int count);
++
++
++// WASM: canonical CRT declaration from port_prefix.h.
++// WASM: canonical CRT declaration from port_prefix.h.
+ }
+ 
+ extern int do_run_log;       // 0x62C4F4
+@@ -121,9 +122,10 @@
+         return;
+ 
+     if (show_time) {
+-        time((long*) &show_time);
++        time_t current_time;
++        time(&current_time);
+         memset(stime, 0, sizeof(stime));
+-        strncpy(stime, ctime((const long*) &show_time), 24);
++        strncpy(stime, ctime(&current_time), 24);
+         fprintf(run_log_file, "%s - %s\n", stime, str);
+     } else {
+         fprintf(run_log_file, "%s\n", str);
+@@ -494,7 +496,7 @@
+ 
+ extern "C" {
+ __declspec(dllimport) char* __stdcall CharUpperA(char* string);
+-char* __cdecl strncpy(char* destination, const char* source, unsigned int count);
++// WASM: canonical CRT declaration from port_prefix.h.
+ long __cdecl atol(const char* string);
+ char* __cdecl strstr(const char* string, const char* substring);
+ char* __cdecl strchr(const char* string, int character);
+@@ -629,8 +631,8 @@
+     return 1;
+ }
+ 
+-extern "C" void* __cdecl calloc(unsigned int num, unsigned int size);
+-extern void* operator new(unsigned int size);
++// WASM: canonical CRT declaration from port_prefix.h.
++extern void* operator new(size_t size);
+ 
+ int TRIBE_Game::setup_sounds() {
+     TDigital* d;
+@@ -4257,7 +4259,7 @@
+     return 1;
+ }
+ 
+-extern "C" int restore_mouse_after_paint; // 62C55Ch
++extern int restore_mouse_after_paint; // 62C55Ch
+ 
+ void TRIBE_Game::shutdown_video_system() {
+     if (video_setup == 0)
+--- a/src/tworld.cpp
++++ b/src/tworld.cpp
+@@ -72,7 +72,7 @@
+ }
+ 
+ void TRIBE_World::logStatus(FILE* out, int firstTime) {
+-    long clock;
++    time_t clock;
+     char tempString[256];
+ 
+     if (out != 0 && firstTime == 1) {
+--- a/src/victory.cpp
++++ b/src/victory.cpp
+@@ -21,7 +21,7 @@
+ struct vc5_phase_10;
+ struct vc5_phase_11;
+ 
+-extern "C" void* calloc(unsigned int count, unsigned int size);
++// WASM: CRT declaration supplied by port_prefix.h.
+ extern "C" int __cdecl sprintf(char* buffer, const char* format, ...);
+ extern void __cdecl getstring(char** destination, char* source);
+ extern "C" void __cdecl free(void* block);
+--- a/src/visible.cpp
++++ b/src/visible.cpp
+@@ -144,7 +144,7 @@
+ 
+ #pragma intrinsic(_rotl)
+ 
+-extern "C" void* __cdecl calloc(unsigned int count, unsigned int size);
++// WASM: CRT declaration supplied by port_prefix.h.
+ extern "C" void __cdecl free(void* block);
+ void __cdecl rge_write(int handle, void* buffer, int count);
+ void __cdecl rge_read(int handle, void* buffer, int count);
+--- a/src/world.cpp
++++ b/src/world.cpp
+@@ -1482,7 +1482,7 @@
+     int fd = rge_open(tempname, _O_BINARY | _O_WRONLY | _O_CREAT | _O_APPEND | _O_TRUNC, _S_IREAD | _S_IWRITE);
+     if (fd != -1) {
+         rge_write_error = 0;
+-        rge_write(fd, "VER 8.6", 8);
++        rge_write(fd, (void*)"VER 8.6", 8);
+         rge_write(fd, &save_game_version, 4);
+ 
+         this->save(fd);
+@@ -1573,9 +1573,9 @@
+     if (fd != -1) {
+         rge_write_error = 0;
+         if (rge_base_game->check_prog_argument("TRIAL") == 1) {
+-            rge_write_uncompressed(fd, "1.10", 4);
++            rge_write_uncompressed(fd, (void*)"1.10", 4);
+         } else {
+-            rge_write_uncompressed(fd, "1.11", 4);
++            rge_write_uncompressed(fd, (void*)"1.11", 4);
+         }
+         rge_base_game->write_scenario_header(fd);
+         rge_write(fd, &this->next_object_id, 4);
+--- a/src/zone_map.cpp
++++ b/src/zone_map.cpp
+@@ -9,7 +9,7 @@
+ #include <string.h>
+ 
+ extern "C" void __cdecl free(void* block);
+-extern "C" void* __cdecl calloc(unsigned int num, unsigned int size);
++// WASM: CRT declaration supplied by port_prefix.h.
+ 
+ unsigned char __cdecl zone_pop(Zone_Queue** zone_queue, Zone_Queue** zone_end, long& x, long& y) {
+     Zone_Queue* node = *zone_queue;
+--- a/include/action.h
++++ b/include/action.h
+@@ -97,6 +97,7 @@
+     RGE_Action_List* sub_actions;
+     RGE_Sprite* sprite;
+     unsigned char subActionValue;
++    unsigned char wasm_base_tail_padding[3]; // Keep the VC5 base boundary in the wasm32 ABI.
+ 
+     unsigned char subAction() const;
+     void setSubAction(unsigned char v);
+--- a/include/com_obj.h
++++ b/include/com_obj.h
+@@ -94,6 +94,7 @@
+     unsigned long Unified_Map_Value;
+     float attack_timer;
+     uchar capture_flag;
++    unsigned char wasm_base_tail_padding[3]; // Keep the VC5 base boundary in the wasm32 ABI.
+ };
+ 
+ typedef char rge_combat_object_vur_offset_check[(offsetof(RGE_Combat_Object, VUR_Ptrs) == 0x194) ? 1 : -1];
+--- a/include/dib.h
++++ b/include/dib.h
+@@ -64,6 +64,6 @@
+ 
+ void __cdecl DibMapToPalette(BITMAPINFOHEADER* pdib, void* hpal, int TransLogic, int ZeroIsTrans);
+ 
+-extern "C" void* __cdecl memmove(void*, const void*, unsigned int);
++// WASM: canonical CRT declaration from port_prefix.h.
+ 
+ #endif
+--- a/include/dstring.h
++++ b/include/dstring.h
+@@ -43,8 +43,9 @@
+     void change(char o, char n);
+ };
+ 
+-class istream;
+-class ostream;
++#include <iosfwd>
++using std::istream;
++using std::ostream;
+ 
+ ostream& __cdecl operator<<(ostream& out, const DString& d);
+ istream& __cdecl operator>>(istream& in, DString& d);
+--- a/include/flics.h
++++ b/include/flics.h
+@@ -3,12 +3,12 @@
+ 
+ #include "drawarea.h"
+ 
+-extern "C" int __cdecl open(const char* path, int access);
+-extern "C" int __cdecl lseek(int handle, long offset, int origin);
+-extern "C" int __cdecl tell(int handle);
+-extern "C" int __cdecl read(int handle, void* buffer, unsigned int size);
++// Port: declaration supplied by platform/CRT headers.
++// Port: declaration supplied by platform/CRT headers.
++// Port: declaration supplied by platform/CRT headers.
++// Port: declaration supplied by platform/CRT headers.
+ extern "C" int __cdecl close(int handle);
+-extern "C" void* __cdecl calloc(unsigned int count, unsigned int size);
++// WASM: canonical CRT declaration from port_prefix.h.
+ extern "C" void __cdecl free(void* block);
+ 
+ class FlicHead {
+--- a/include/game_types.h
++++ b/include/game_types.h
+@@ -504,8 +504,9 @@
+ class _iobuf;
+ class _tag_wavheader;
+ class ios;
+-class istream;
+-class ostream;
++#include <iosfwd>
++using std::istream;
++using std::ostream;
+ class pcmwaveformat_tag;
+ class rdlg_list_info;
+ class res_file_type_info;
+--- a/include/move_obj.h
++++ b/include/move_obj.h
+@@ -50,6 +50,7 @@
+     float closestDistanceToWaypoint;
+     unsigned char lastFacet;
+     unsigned char lastFacet2;
++    unsigned char wasm_base_tail_padding[2]; // Preserve VC5 base-class boundary; no Itanium tail reuse.
+ 
+     enum PathResult { PathFound = 0, PathNoPath = 1, NoPathFound = 1, WaitingOnPathingCap = 2 };
+ 
+--- a/include/path.h
++++ b/include/path.h
+@@ -5,7 +5,8 @@
+ 
+ #include <new.h>
+ 
+-class ostream;
++#include <iosfwd>
++using std::ostream;
+ 
+ class Path {
+   public:
+--- a/include/t_c_obj.h
++++ b/include/t_c_obj.h
+@@ -75,6 +75,7 @@
+ 
+   public:
+     unsigned char own_master;
++    unsigned char wasm_base_tail_padding[3]; // Keep the VC5 base boundary in the wasm32 ABI.
+ };
+ 
+ typedef char tribe_combat_object_own_master_offset_check[(offsetof(TRIBE_Combat_Object, own_master) == 0x1C4) ? 1 : -1];
+--- a/include/taiinfmd.h
++++ b/include/taiinfmd.h
+@@ -45,7 +45,7 @@
+ extern InfluenceMap losMap;
+ extern InfluenceMap attackMap;
+ 
+-void* operator new(unsigned int size);
++void* operator new(size_t size);
+ void operator delete(void* pointer);
+ 
+ class TribeInformationAIModule : public InformationAIModule {
+--- a/include/taistrmd.h
++++ b/include/taistrmd.h
+@@ -15,7 +15,7 @@
+ class TRIBE_Player;
+ struct RGE_Victory_Entry;
+ 
+-void* __cdecl operator new(unsigned int size);
++void* __cdecl operator new(size_t size);
+ void __cdecl operator delete(void* pointer);
+ 
+ class TribeStrategyAIModule : public StrategyAIModule {

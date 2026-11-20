@@ -1,0 +1,236 @@
+{
+  "reference_commit": "6d6d8b14023aa74e6ac30a6c88229d5b818fb805",
+  "changed_files": 46,
+  "changes": [
+    {
+      "file": "upstream/src/Command.cpp",
+      "upstream_sha256": "f7504bb8dddb7b2ce76afd197138c13450e630bd5aaf4e049ea20876a7e024fb",
+      "ported_sha256": "870aa5d23ffea57d3b68e04789f91884743a8a0665a3ac69896ffaca8261fb47"
+    },
+    {
+      "file": "upstream/src/Dib.cpp",
+      "upstream_sha256": "9a2d97f289d69e13f6855a1b241f24f05f42034f0ab2cd0299f2d189c408b09a",
+      "ported_sha256": "14e0d0972ac0fcb0ac268672c8571232fac868e60d364a600b1dac913602cbba"
+    },
+    {
+      "file": "upstream/src/Picture.cpp",
+      "upstream_sha256": "2a7c8c4e76a50d5d85b0941eaa73d1e28bf287192c91bcb32f0e34fb7ce6d5f4",
+      "ported_sha256": "b2523ea3434eda5cfc0e3e456674b9f4c6dc6c1b937fc211d53db95cc09571cd"
+    },
+    {
+      "file": "upstream/src/Pnl_msg.cpp",
+      "upstream_sha256": "94e465350c7011082812cb9edeff4362eceaf8d98bba7a492419db87f80ac1aa",
+      "ported_sha256": "18f0c7f2c0f823c84f1a10f99ce4319f5c37b317f7677b71a25605a362228339"
+    },
+    {
+      "file": "upstream/src/Res_file.cpp",
+      "upstream_sha256": "326d6d6fcca0849bcb5394061aac5d6b0257a0e9d5f8cc7812428dda398984fe",
+      "ported_sha256": "db87754ee4ed3bb6f23d7a44c1b48545ac279ffbfa1db8b204fac78657850f02"
+    },
+    {
+      "file": "upstream/src/Shape.cpp",
+      "upstream_sha256": "8eec86d213a96f7abd618669e5691c05b91dd2d837b8361512e57b94ebd9ead2",
+      "ported_sha256": "1375781c253b8d682edadb09033fd2f9957890e58084b7bf66a9c02bd0b16218"
+    },
+    {
+      "file": "upstream/src/Sounddrv.cpp",
+      "upstream_sha256": "3962f8fb45b85ddf855e9dc10a2a01c0e12edb72a6435851758e175efe438caa",
+      "ported_sha256": "a3d2febdafe6fa327d01c9e225fd67e82a506035e48f7de8e4ae056476751af5"
+    },
+    {
+      "file": "upstream/src/asp_list.cpp",
+      "upstream_sha256": "722d117cb1cf9c6bde8f77339110c79e7f68364af092ae218c02508a76148ede",
+      "ported_sha256": "28766574abdb5770b6e566343317bd77e9494e08c374cebfb8b96d23510c862a"
+    },
+    {
+      "file": "upstream/src/basegame.cpp",
+      "upstream_sha256": "f574cc27fc00d52bf0b05b64a0cac85529b9bc3400c52acdcc5c8ae4198fdecf",
+      "ported_sha256": "7b8d1c9f4f377cf44db5582cc3d45efa027988f5f7891a9b259e4b75c0ebe29d"
+    },
+    {
+      "file": "upstream/src/campaign.cpp",
+      "upstream_sha256": "474a5dc3d50e147fc2d6fba412dc85235aa023e9bd2692233d4da69dffad4f5c",
+      "ported_sha256": "acd4c9a8bf60d57de2b660413777271e2390e6b9da3e1bd97540fd6fb70ab8ac"
+    },
+    {
+      "file": "upstream/src/com_hand.cpp",
+      "upstream_sha256": "7fca359d6dd5f617c89962e4cab59a2f0c93199d157826c470fe45da84265d2d",
+      "ported_sha256": "790ccc7a114d934cfa338ed1e20d1aaa3b8becd3b076c26357d7a7566df7b158"
+    },
+    {
+      "file": "upstream/src/debuglog.cpp",
+      "upstream_sha256": "2a7b94f0c8579805b85fd424bf40b919993b224e6d1d8c7323741b8383968764",
+      "ported_sha256": "453e34c9f602a320a60b247ac359b9feeeab526ba4b47b6f6656f87d477e076a"
+    },
+    {
+      "file": "upstream/src/drawarea.cpp",
+      "upstream_sha256": "50492bb01cf8d1c4edb75595c8c85f573837284c1c6514d1914f3ee5d55c31dd",
+      "ported_sha256": "f3559a906c20fb225b7c148f1ae07b6209a5aa36e55ce5faea0df9f5473a84b3"
+    },
+    {
+      "file": "upstream/src/game_globals.cpp",
+      "upstream_sha256": "7db6ca1ff7f89411787ff2861b47506b75d3be3fde1b146597ecb83f7c6997a3",
+      "ported_sha256": "955a41034f572481b7a45ff9fe590774517efe0291b8d006c27e17b04d994fb4"
+    },
+    {
+      "file": "upstream/src/getdxver.cpp",
+      "upstream_sha256": "68b30f31c20d0e49237f7c5b5ad8c805e542ada577e79fcaebe3f283cf1f33b9",
+      "ported_sha256": "fcf7d699c5bf7d225c3e6ef68b969f0841b7b3cf5da228f82d3fd7c595ef5e68"
+    },
+    {
+      "file": "upstream/src/music.cpp",
+      "upstream_sha256": "5abdd91f34f06796b829aa78f48fae96f05b8185621444b7b9fc3ce200a0cc5c",
+      "ported_sha256": "e7a10987ccd4e8f46f8b8f083cae8120415d3377b818cbf04204547f6074d6d3"
+    },
+    {
+      "file": "upstream/src/pathsys.cpp",
+      "upstream_sha256": "e9aca985d151f65f0e7087a829267fb896a7a15f919dd5d0535757245b7a18fd",
+      "ported_sha256": "a49cb93f7b9788ce679a980a320239a0dd0978423b72fa2ff19f81238cc9f90c"
+    },
+    {
+      "file": "upstream/src/pnl_btn.cpp",
+      "upstream_sha256": "23d7bafaf5c19ad5e7435cfa67a17f1c91856a8620d2fe9f38f0a5ded40eacd1",
+      "ported_sha256": "7678c72cc45340d5c03dc4d8acdb7163d9cdbb283f990bf40f1371cb4b35b858"
+    },
+    {
+      "file": "upstream/src/rge_fio.cpp",
+      "upstream_sha256": "b7a97c1724ae1cb57c92847a04aaf6b984016a23fa6881053ecd820f60a7cf1c",
+      "ported_sha256": "f8e9f523d15569e2cfecdceeb98f23dc87e0f96bddd2cfbc54dcff73500c5fad"
+    },
+    {
+      "file": "upstream/src/rmm_land.cpp",
+      "upstream_sha256": "f17d795814e5f3c6d5bb07e8ce9ced1d18781d5762298dad43fccef9dd810cd0",
+      "ported_sha256": "2366dfa6848c0e158d3799093ccf7ec0fe8df2bffa2789b72c2398331ca80fea"
+    },
+    {
+      "file": "upstream/src/rmm_obj.cpp",
+      "upstream_sha256": "fa56d18d6ce0bb3b172ca727566b9f8dc60ac63bc2bbc0b2f162ed65d02fc60b",
+      "ported_sha256": "bdc871a4d3abc3beaa49b944953cd68c940a23cebf0af511d27bf62c73bdf668"
+    },
+    {
+      "file": "upstream/src/scenario.cpp",
+      "upstream_sha256": "261dc9c71aa230733d38191be01c94dd8d0641ac469a3222e8ebea545a6f9082",
+      "ported_sha256": "863770c71007ca953e569825d30eae6fa250fe64a00d0d9465af9a8f849cd3d5"
+    },
+    {
+      "file": "upstream/src/scr_mp.cpp",
+      "upstream_sha256": "089ec9c2a7b0ee615f84e25e97ed6c857af34577efbb7f658fa4ad93d7719084",
+      "ported_sha256": "86c3454717044dea483b513dd1b860f5cf495fe5ead33e05f43d81601cf58bae"
+    },
+    {
+      "file": "upstream/src/spanlist.cpp",
+      "upstream_sha256": "636a3e6904a2f9b310f381413d3f39367dc3ad361a998d4e792d5286cd19b883",
+      "ported_sha256": "b035edf6ca6ae076a9f622f8c675a11c694321dae7a3acdbcb7ab74043d18969"
+    },
+    {
+      "file": "upstream/src/taiinfmd.cpp",
+      "upstream_sha256": "3b5b3b9263bb7989c58a88918cfdc8f38a9d403fa8c6a3baef117ef654f16033",
+      "ported_sha256": "0cb0bea9bf1dff1afdb0e8f007f9e03fd895bb91acbedd3d031f782595d1f86a"
+    },
+    {
+      "file": "upstream/src/taistrmd.cpp",
+      "upstream_sha256": "e725478a3177ce222cde7ae91b0bae00a4aa6a1ffd895263d3a28d701512a708",
+      "ported_sha256": "09327401932786206fcf4775731c26d08cb564c47f6e06fd98dd3a33a0cfb35f"
+    },
+    {
+      "file": "upstream/src/taitacmd.cpp",
+      "upstream_sha256": "c8d8956672db1bca450f3a36469985cf325c762c26bacb72514c7e7e8d88b593",
+      "ported_sha256": "1a24312ea2edaa16c0874f31bc866040ddc63b8090907fd66bed62c3b0718580"
+    },
+    {
+      "file": "upstream/src/taunt.cpp",
+      "upstream_sha256": "e3e93ff8638b5f1c63bb0937c8717dbc0acea3cffc4f8bbb1d6ef46a9ff1b94f",
+      "ported_sha256": "ccaf36938417c49487ac87d86fe45cd01b80d6b14ef9f958bbd0ff21181d37e4"
+    },
+    {
+      "file": "upstream/src/tcommand.cpp",
+      "upstream_sha256": "8d6a7ebf18cb76f1af8449fd4ebb2ff2a368b39ed26b7399c9c8e3e0160394bd",
+      "ported_sha256": "57630d388b0ceeaf680a75930df1af5e374ad6e95f803dbbdebecea371c26851"
+    },
+    {
+      "file": "upstream/src/tribegam.cpp",
+      "upstream_sha256": "f9554c7bc3ec9e98b1196b1fe72be16feb8f8a2f492756a14901a5aa2a878fb0",
+      "ported_sha256": "89136412b716a2b5b388bf53e0bd00a386e23a63c81a81d5bf5f5cd074e17c21"
+    },
+    {
+      "file": "upstream/src/tworld.cpp",
+      "upstream_sha256": "c694c6640e0c953c2e1a25de9b31f4e1c693d9caec32962fe8c86ea7d24b6769",
+      "ported_sha256": "9b0aa21795dec7bc5d4bfcc73725e12c9a87b5bea621541084d0734481275b95"
+    },
+    {
+      "file": "upstream/src/victory.cpp",
+      "upstream_sha256": "b73bed17ac40b387f5d70ad6d47575d07ea987bfd6df81e316b1b08921bb9154",
+      "ported_sha256": "d7eafb4a60fd9a91d0f119f3d51dc7055596eafcbaada193c40bca525c4e38d0"
+    },
+    {
+      "file": "upstream/src/visible.cpp",
+      "upstream_sha256": "b235491b5488af222cc9c1988bb3565ec5c133eccad27b88b954a962a0a9601e",
+      "ported_sha256": "3d4f5669233226f6be53e52c60ff06a0570cfdc3abb80e75db48ddab5b929011"
+    },
+    {
+      "file": "upstream/src/world.cpp",
+      "upstream_sha256": "2e06d5523aab501ebae86b3d6d8753471443747d39a693ed3c6ded1fa356921b",
+      "ported_sha256": "747d92206917c529a123a12a3dd586a92570251e76b1990ff9ace9cea428b8b3"
+    },
+    {
+      "file": "upstream/src/zone_map.cpp",
+      "upstream_sha256": "ba7ac4246453339b90e453dcd6b356257abf0ac91f137e594f90c5710bc2421e",
+      "ported_sha256": "0b618aa2f90ead33ab1499dddeab395a54ac4b0a2d76ce20928a5f6262cf524b"
+    },
+    {
+      "file": "upstream/include/action.h",
+      "upstream_sha256": "2ee3589a9aa90c3e5a6af7878e6f1992a24f83e7a7f61953605e17ae9de2619f",
+      "ported_sha256": "1e8c03c02430f888073eb9d8fb91d570e6da883598e875fa4eb596ae76e01857"
+    },
+    {
+      "file": "upstream/include/com_obj.h",
+      "upstream_sha256": "b8c2267fb834e0962a189ce18cb8b174198d0f89fa89572912def8c895f69748",
+      "ported_sha256": "bfa62719111de3d6757513efa500c1cb21b196c9a1c27441140e9bb3ba54c761"
+    },
+    {
+      "file": "upstream/include/dib.h",
+      "upstream_sha256": "375030f5997f438ec2008cdb029f8a0b1fd7e1cc378c370394f7dae1b39ab8ca",
+      "ported_sha256": "d782e81729d479ffdb6271418e5176b28c015947bb5e17e2e4fd8739e4944e79"
+    },
+    {
+      "file": "upstream/include/dstring.h",
+      "upstream_sha256": "f53b397b4844990b44dfc917dc7955bad24685e10dc8df0caf5dd548028fa13e",
+      "ported_sha256": "dd36b441f690a3637a6bb458d4fa143f93fbd99203fcbac77dbeea1e8139a485"
+    },
+    {
+      "file": "upstream/include/flics.h",
+      "upstream_sha256": "1951552aee576148b97a3deb4e626127be9063fbd147784b860ecdd59a877a81",
+      "ported_sha256": "a62a13e368f4d7ba92e41574dfe75bd2282ec1b842e67f6c06eb33feb8f1494b"
+    },
+    {
+      "file": "upstream/include/game_types.h",
+      "upstream_sha256": "8268c0e8aa41fa08f3ba9ce16b10dfb71fbe0903e64071aa4adcc106c9f04d60",
+      "ported_sha256": "0ac4a07a4b63920d60a244ccf20d542eb645213e21772ab97fac015647cd65db"
+    },
+    {
+      "file": "upstream/include/move_obj.h",
+      "upstream_sha256": "906433c948f8028e825267e134f8cf55b21b105f236d76c4b1b521810ade175b",
+      "ported_sha256": "535bb1e8326fdb960f9cfea91dbd9867ef1d07c1c052e0965d92aa5dba9ef061"
+    },
+    {
+      "file": "upstream/include/path.h",
+      "upstream_sha256": "f2d0f297eed7de648dbb3aaf57ad829e9d8704897f0f8a4abb304ee304768efa",
+      "ported_sha256": "05e9913d9be2800109ab6ad30cf13599533f0ea4f28af11a2d537826ff1d8e69"
+    },
+    {
+      "file": "upstream/include/t_c_obj.h",
+      "upstream_sha256": "c7a5b6b5cc144ebf613e4d8a9f8e9ba4f597209d9586507f7019580d26621f42",
+      "ported_sha256": "a61629a0831387d36668e02045312b620af6920d5024df6679ce117eb773d369"
+    },
+    {
+      "file": "upstream/include/taiinfmd.h",
+      "upstream_sha256": "022c1f0d8c4f218fbfe01412a446e1b698f2ab1430c558528148b08ece914d41",
+      "ported_sha256": "6a24d8acc64afd64aa97275d9a4a5351ff6542f03ca90a9b6cca63bd045a642a"
+    },
+    {
+      "file": "upstream/include/taistrmd.h",
+      "upstream_sha256": "05220b6b3ca1d2bb05f39484a201464fe86a6d510a23987abd2e9ed33fce8253",
+      "ported_sha256": "5baa1bf3e8044d7065d5a3866fb50b5609f9f0a4e0bb758c4e3a8d24a37d9654"
+    }
+  ]
+}

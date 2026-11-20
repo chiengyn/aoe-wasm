@@ -1,0 +1,19 @@
+{
+  "repository": "https://github.com/dcostap/aoe1-decomp",
+  "commit": "6d6d8b14023aa74e6ac30a6c88229d5b818fb805",
+  "purpose": "WASM port of recovered C++ engine; reference beta is different from supplied retail EXE.",
+  "changes": {
+    "changed_files": 46,
+    "categories": [
+      "Use canonical C/C++ library declarations and size_t for operator new",
+      "Fix case-sensitive include filenames and C/C++ linkage",
+      "Preserve Microsoft x86 object layout with explicit tail padding; original ABI assertions remain enabled",
+      "Use time_t with the WASM C runtime to avoid overwriting 32-bit long stack storage",
+      "Replace VC5 int3 with an explicit portable trap",
+      "Fix VC5-only scope and pointer conversions; rename a local conflicting memmove helper"
+    ]
+  },
+  "changes_manifest": "../port-changes.json",
+  "patch": "../port.patch",
+  "retail_parity_verified": false
+}

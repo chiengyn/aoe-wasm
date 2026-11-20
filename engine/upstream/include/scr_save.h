@@ -1,0 +1,55 @@
+#ifndef AOE1_SCR_SAVE_H
+#define AOE1_SCR_SAVE_H
+
+#include "pnl_dlg.h"
+#include "panel_ez.h"
+#include "Pnl_scr.h"
+#include "panel.h"
+#include "basegame.h"
+#include "drawarea.h"
+#include "Shape.h"
+#include "Picture.h"
+#include "pnl_btn.h"
+#include "Pnl_txt.h"
+#include "pnl_lst.h"
+#include "Pnl_inp.h"
+#include "pnl_edit.h"
+#include "Pnl_scbr.h"
+#include "pnl_drop.h"
+#include "pnl_sld.h"
+#include "main.h"
+#include "world.h"
+#include "scenario.h"
+#include "tribegam.h"
+#include "rge_base_game_global.h"
+
+class TRIBE_Screen_Sed_Open;
+
+class TribeSaveGameScreen : public TScreenPanel {
+  public:
+    enum Mode { SaveGame = 0, SaveScenario = 1, SaveScenarioEdit = 2 };
+
+    TribeSaveGameScreen(Mode m, char* file_name, int quit_after_save_in);
+    virtual ~TribeSaveGameScreen();
+
+  protected:
+    TTextPanel* title;
+    TEditPanel* input;
+    TListPanel* list;
+    TScrollBarPanel* scrollbar;
+    TButtonPanel* okButton;
+    TButtonPanel* cancelButton;
+    TButtonPanel* deleteButton;
+    char fileName[260];
+    char fileNameNoExt[260];
+    Mode modeValue;
+    int quit_after_save;
+
+    void fillList();
+    virtual long action(TPanel* fromPanel, long actionIn, unsigned long a1, unsigned long a2);
+    void save_for_scenario_editor();
+};
+
+typedef char scr_save_screen_size_check[(sizeof(TribeSaveGameScreen) == 0x6A4) ? 1 : -1];
+
+#endif

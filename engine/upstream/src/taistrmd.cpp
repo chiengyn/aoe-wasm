@@ -1,0 +1,1269 @@
+
+#include "../include/taistrmd.h"
+#include "../include/game_globals.h"
+#include "../include/taimdmd.h"
+#include "../include/basegame.h"
+#include "../include/player.h"
+#include "../include/rge_fio.h"
+#include "../include/tplayer.h"
+#include "../include/stat_obj.h"
+#include "../include/m_s_obj.h"
+#include "../include/victory.h"
+
+VictoryConditionRuleSystem::VictoryConditionRuleSystem() {
+    int* p = this->sn;
+    p[0] = 34;
+    p[1] = 0;
+    p[2] = 66;
+    p[3] = 2;
+    p[4] = 2;
+    p[5] = -1;
+    p[6] = -1;
+    p[7] = -1;
+    p[8] = -1;
+    p[9] = -1;
+    p[10] = -1;
+    p[11] = -1;
+    p[12] = -1;
+    p[13] = -1;
+    p[14] = -1;
+    p[15] = -1;
+    p[16] = 4;
+    p[17] = -1;
+    p[18] = 4;
+    p[19] = 50;
+    p[20] = 50;
+    p[21] = -1;
+    p[22] = 12;
+    p[23] = 10;
+    p[24] = 75;
+    p[25] = 1;
+    p[26] = 10;
+    p[27] = -1;
+    p[28] = 4;
+    p[29] = 85;
+    p[30] = 70;
+    p[31] = 75;
+    p[32] = 100;
+    p[33] = -1;
+    p[34] = 50;
+    p[35] = 0;
+    p[36] = 3;
+    p[37] = 0;
+    p[38] = 0;
+    p[39] = 0;
+    p[40] = 0;
+    p[41] = 4;
+    p[42] = 0;
+    p[43] = 1;
+    p[44] = 3;
+    p[45] = 0;
+    p[46] = 30;
+    p[47] = 1;
+    p[48] = 30;
+    p[49] = 3;
+    p[50] = 0;
+    p[51] = 0;
+    p[52] = 0;
+    p[53] = 0;
+    p[54] = 0;
+    p[55] = 0;
+    p[56] = 7;
+    p[57] = 3;
+    p[58] = 2;
+    p[59] = 1;
+    p[60] = 5;
+    p[61] = 1;
+    p[62] = 1;
+    p[63] = 2;
+    p[64] = 0;
+    p[65] = 0;
+    p[66] = 0;
+    p[67] = 0;
+    p[68] = 0;
+    p[69] = 0;
+    p[70] = 0;
+    p[71] = 1;
+    p[72] = 2;
+    p[73] = 12;
+    p[74] = 20;
+    p[75] = 3;
+    p[76] = 15;
+    p[77] = 50;
+    p[78] = 0;
+    p[79] = 0;
+    p[80] = 0;
+    p[81] = 0;
+    p[82] = 0;
+    p[83] = 0;
+    p[84] = 4;
+    p[85] = 2;
+    p[86] = 25;
+    p[87] = 100;
+    p[88] = 3;
+    p[89] = -25;
+    p[90] = 0;
+    p[91] = 100;
+    p[92] = 5;
+    p[93] = 1;
+    p[94] = 0;
+    p[95] = 0;
+    p[96] = 0;
+    p[97] = 0;
+    p[98] = 1;
+    p[99] = 10;
+    p[100] = 3;
+    p[101] = 1;
+    p[102] = 15;
+    p[103] = 0;
+    p[104] = 0;
+    p[105] = 0;
+    p[106] = -1;
+    p[107] = -1;
+    p[108] = -1;
+    p[109] = 0;
+    p[110] = 0;
+    p[111] = 0;
+    p[112] = 300;
+    p[113] = 0;
+    p[114] = 25;
+    p[115] = 10;
+    p[116] = 10;
+    p[117] = 0;
+    p[118] = 0;
+    p[119] = 0;
+    p[120] = 0;
+    p[121] = 0;
+    p[122] = 100;
+    p[123] = 0;
+    p[124] = 0;
+    p[125] = 0;
+    p[126] = 0;
+    p[127] = 0;
+    p[128] = -1;
+    p[129] = 0;
+    p[130] = 0;
+    p[131] = 3;
+    p[132] = 0;
+    p[133] = 0;
+    p[134] = 0;
+    p[135] = 1;
+    p[136] = 15;
+    p[137] = 0;
+    p[138] = 0;
+    p[139] = 0;
+    p[140] = 0;
+    p[141] = 0;
+    p[142] = 0;
+    p[143] = 1;
+    p[144] = 0;
+    p[145] = 10;
+    p[146] = 50;
+    p[147] = 10;
+    p[148] = 20;
+    p[149] = 40;
+    p[150] = -1;
+    p[151] = 3;
+    p[152] = 0;
+    p[153] = -1;
+    p[154] = -1;
+    p[155] = 10;
+    p[156] = 0;
+    p[157] = 0;
+    p[158] = 0;
+    p[159] = 0;
+    p[160] = 50;
+    p[161] = 2;
+    p[162] = 0;
+    p[163] = 7;
+    p[164] = 10;
+    p[165] = 25;
+    p[166] = 7;
+    p[167] = 2;
+    p[168] = 50;
+    p[169] = 10;
+    p[170] = 200;
+    p[171] = 250;
+    p[172] = 150;
+    p[173] = 200;
+    p[174] = 2;
+    p[175] = -1;
+    p[176] = 0;
+    p[177] = -1;
+    p[178] = 10;
+    p[179] = 30;
+    p[180] = 1;
+    p[181] = 1;
+    p[182] = 0;
+    p[183] = 0;
+    p[184] = 20;
+    p[185] = 50;
+    p[186] = 0;
+    p[187] = 0;
+    p[188] = 1;
+    p[189] = 50;
+    p[190] = 3000;
+    p[191] = 2000;
+    p[192] = 1500;
+    p[193] = 3000;
+    p[194] = 1;
+    p[195] = 25;
+    p[199] = 25;
+    p[202] = 25;
+    p[196] = 1;
+    p[197] = 120;
+    p[198] = 50;
+    p[200] = 50;
+    p[201] = 0;
+    p[203] = 1;
+    p[204] = 5;
+    p[205] = 1;
+    p[206] = 1;
+    p[207] = 1;
+    p[208] = 0;
+    p[209] = 0;
+    p[210] = 0;
+    p[211] = 1;
+    p[212] = 0;
+    p[213] = 0;
+    p[214] = 0;
+    p[215] = 1;
+    p[216] = 50;
+    p[217] = 0;
+    p[218] = 100;
+    p[219] = 100;
+    p[220] = 8;
+    p[221] = 3;
+    p[222] = 10;
+    p[223] = 0;
+    p[224] = 0;
+    p[225] = 1;
+}
+
+VictoryConditionRuleSystem::~VictoryConditionRuleSystem() {
+}
+
+extern "C" int __cdecl strcmp(const char* left, const char* right);
+// WASM: CRT declaration supplied by port_prefix.h.
+extern "C" int __cdecl sprintf(char* buffer, const char* format, ...);
+extern "C" FILE* __cdecl fopen(const char* filename, const char* mode);
+extern "C" char* __cdecl fgets(char* buffer, int count, FILE* stream);
+extern "C" int __cdecl sscanf(const char* buffer, const char* format, ...);
+extern "C" int __cdecl fclose(FILE* stream);
+extern "C" char* __cdecl strstr(const char* text, const char* search);
+extern "C" int __cdecl _unlink(const char* filename);
+
+#pragma intrinsic(strcmp)
+#pragma intrinsic(strlen)
+
+int VictoryConditionRuleSystem::loadRules(char* rName) {
+    char commentTemp1;
+    char commentTemp2;
+    int ruleIndex;
+    int ruleValue;
+    char temp[256];
+    FILE* file;
+
+    if (strcmp(rName, "NONE") != 0 && rName != 0 && strlen(rName) != 0) {
+        sprintf(temp, "%s", rName);
+        file = fopen(temp, "r");
+        if (file != 0) {
+            while (fgets(temp, 0x100, file) != 0) {
+                // The shipped parser ignores both sscanf results.
+                // Keep these outputs uninitialized for malformed input.
+                sscanf(temp, " %c%c", &commentTemp1, &commentTemp2);
+                if ((commentTemp1 != '/' || commentTemp2 != '/') && (commentTemp1 != 'D' || commentTemp2 != 'E')
+                    && (commentTemp1 != 'V' || commentTemp2 != 'C')) {
+                    if (commentTemp1 == 'E' && commentTemp2 == 'N') {
+                        break;
+                    }
+                    sscanf(temp, "%d %d ", &ruleIndex, &ruleValue);
+                    if (ruleIndex >= 0 && ruleIndex < 0xE2) {
+                        this->sn[ruleIndex] = ruleValue;
+                    }
+                }
+            }
+            fclose(file);
+            if (strstr(rName, ".tmp") != 0) {
+                _unlink(rName);
+            }
+            return 1;
+        }
+    }
+    return 0;
+}
+
+void VictoryConditionRuleSystem::setRule(int ruleIndex, int ruleValue) {
+    if (ruleIndex < 0 || ruleIndex >= 226)
+        return;
+    this->sn[ruleIndex] = ruleValue;
+}
+
+int VictoryConditionRuleSystem::rule(int ruleIndex) {
+    if (ruleIndex < 0 || ruleIndex >= 226)
+        return -1;
+    return this->sn[ruleIndex];
+}
+
+int VictoryConditionRuleSystem::evaluateAsInProgress(TRIBE_Player* p, int ruleNumber) {
+    return 0;
+}
+
+int VictoryConditionRuleSystem::evaluateAsNonInProgress(TRIBE_Player* p, int ruleNumber) {
+    switch (ruleNumber) {
+        case 1:
+        case 2:
+        case 0x0C:
+        case 0x0D:
+        case 0x0E:
+        case 0x10:
+        case 0x11:
+        case 0x12:
+        case 0x15:
+        case 0x16:
+        case 0x17:
+        case 0x18:
+        case 0x19:
+        case 0x1A:
+        case 0x1B:
+        case 0x1C:
+        case 0x1D:
+        case 0x1E:
+        case 0x1F:
+        case 0x20:
+        case 0x21:
+        case 0x22:
+        case 0x23:
+        case 0x24:
+        case 0x25:
+        case 0x26:
+        case 0x27:
+        case 0x28:
+        case 0x29:
+        case 0x2A:
+        case 0x2B:
+        case 0x2C:
+        case 0x2D:
+        case 0x2E:
+        case 0x2F:
+        case 0x30:
+        case 0x31:
+            return -2;
+        default:
+            return 0;
+    }
+}
+
+int VictoryConditionRuleSystem::execute(TRIBE_Player* p, int vcNumber, int ruleNumber) {
+    if (vcNumber < 0 || vcNumber >= 0xD) {
+        return 0;
+    }
+
+    switch (ruleNumber) {
+        case 1:
+            p->playerAI->tacticalAI.setStrategicNumber(SNPercentCivilianExplorers, this->sn[SNPercentCivilianExplorers]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNPercentCivilianBuilders, this->sn[SNPercentCivilianBuilders]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNPercentCivilianGatherers, this->sn[SNPercentCivilianGatherers]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNCapCivilianExplorers, this->sn[SNCapCivilianExplorers]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNCapCivilianBuilders, this->sn[SNCapCivilianBuilders]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNCapCivilianGatherers, this->sn[SNCapCivilianGatherers]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNMinimumCivilianExplorers, this->sn[SNMinimumCivilianExplorers]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNMaximumGAIAAttackResponse, this->sn[SNMaximumGAIAAttackResponse]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xe1, this->sn[0xe1]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNFoodGathererPercentage, this->sn[SNFoodGathererPercentage]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNGoldGathererPercentage, this->sn[SNGoldGathererPercentage]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNStoneGathererPercentage, this->sn[SNStoneGathererPercentage]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNWoodGathererPercentage, this->sn[SNWoodGathererPercentage]);
+            p->playerAI->tacticalAI.setStrategicNumber(
+                SNBuildPlanFoodGathererPercentage, this->sn[SNBuildPlanFoodGathererPercentage]
+            );
+            p->playerAI->tacticalAI.setStrategicNumber(
+                SNBuildPlanWoodGathererPercentage, this->sn[SNBuildPlanWoodGathererPercentage]
+            );
+            p->playerAI->tacticalAI.setStrategicNumber(
+                SNBuildPlanStoneGathererPercentage, this->sn[SNBuildPlanStoneGathererPercentage]
+            );
+            p->playerAI->tacticalAI.setStrategicNumber(
+                SNBuildPlanGoldGathererPercentage, this->sn[SNBuildPlanGoldGathererPercentage]
+            );
+            p->playerAI->tacticalAI.setStrategicNumber(
+                SNMaxBuildPlanGathererPercentage, this->sn[SNMaxBuildPlanGathererPercentage]
+            );
+            p->playerAI->tacticalAI.setStrategicNumber(SNIntelligentGathering, this->sn[SNIntelligentGathering]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNRetaskGatherAmount, this->sn[SNRetaskGatherAmount]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNMaxRetaskGatherAmount, this->sn[SNMaxRetaskGatherAmount]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xcb, this->sn[0xcb]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xa3, this->sn[0xa3]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xa4, this->sn[0xa4]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xa6, this->sn[0xa6]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xa5, this->sn[0xa5]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xa7, this->sn[0xa7]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xb3, this->sn[0xb3]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNAutoBuilding, this->sn[SNAutoBuilding]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xcd, this->sn[0xcd]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xcf, this->sn[0xcf]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNAutoBuildFarms, this->sn[SNAutoBuildFarms]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xdc, this->sn[0xdc]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xde, this->sn[0xde]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xd0, this->sn[0xd0]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xd1, this->sn[0xd1]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xd2, this->sn[0xd2]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xd3, this->sn[0xd3]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xdf, this->sn[0xdf]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xd4, this->sn[0xd4]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xd5, this->sn[0xd5]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xd6, this->sn[0xd6]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xe0, this->sn[0xe0]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xa9, this->sn[0xa9]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xaa, this->sn[0xaa]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xab, this->sn[0xab]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xac, this->sn[0xac]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xad, this->sn[0xad]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xbe, this->sn[0xbe]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xbf, this->sn[0xbf]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xc0, this->sn[0xc0]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xc1, this->sn[0xc1]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xae, this->sn[0xae]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xcc, this->sn[0xcc]);
+            break;
+        case 2:
+            p->playerAI->tacticalAI.setStrategicNumber(SNMinimumAttackGroupSize, this->sn[SNMinimumAttackGroupSize]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNMaximumAttackGroupSize, this->sn[SNMaximumAttackGroupSize]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNNumberAttackGroups, this->sn[SNNumberAttackGroups]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNAttackGroupMakeup, this->sn[SNAttackGroupMakeup]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNScaleMinimumAttackGroupSize, this->sn[SNScaleMinimumAttackGroupSize]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNScaleMaximumAttackGroupSize, this->sn[SNScaleMaximumAttackGroupSize]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNAttackGroupSizeRandomness, this->sn[SNAttackGroupSizeRandomness]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNDefendImportantGroupLeaders, this->sn[SNDefendImportantGroupLeaders]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNGroupLeaderDefenseDistance, this->sn[SNGroupLeaderDefenseDistance]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNTaskUngroupedSoldiers, this->sn[SNTaskUngroupedSoldiers]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNUsePlayAttacking, this->sn[SNUsePlayAttacking]);
+            break;
+        case 0xc:
+            p->playerAI->tacticalAI.setStrategicNumber(SNTotalNumberExplorers, this->sn[SNTotalNumberExplorers]);
+            break;
+        case 0xd:
+            p->playerAI->tacticalAI.setStrategicNumber(SNPercentEnemySightedResponse, this->sn[SNPercentEnemySightedResponse]);
+            break;
+        case 0xe:
+            p->playerAI->tacticalAI.setStrategicNumber(SNEnemySightedResponseDistance, this->sn[SNEnemySightedResponseDistance]);
+            break;
+        case 0x10:
+            p->playerAI->tacticalAI.setStrategicNumber(SNSentryDistance, this->sn[SNSentryDistance]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNSentryDistanceVariation, this->sn[SNSentryDistanceVariation]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNDefenseDistance, this->sn[SNDefenseDistance]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNDefendOverlapDistance, this->sn[SNDefendOverlapDistance]);
+            break;
+        case 0x11:
+            p->playerAI->tacticalAI.setStrategicNumber(SNArtifactReturnDistance, this->sn[SNArtifactReturnDistance]);
+            break;
+        case 0x12:
+            p->playerAI->tacticalAI.setStrategicNumber(SNPercentVictoryClamp, this->sn[SNPercentVictoryClamp]);
+            break;
+        case 0x15:
+            p->playerAI->tacticalAI.setStrategicNumber(SNMinimumDefendGroupSize, this->sn[SNMinimumDefendGroupSize]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNMaximumDefendGroupSize, this->sn[SNMaximumDefendGroupSize]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNNumberDefendGroups, this->sn[SNNumberDefendGroups]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNDefendGroupMakeup, this->sn[SNDefendGroupMakeup]);
+            break;
+        case 0x16:
+            p->playerAI->tacticalAI.setStrategicNumber(SNMinimumPeaceLikeLevel, this->sn[SNMinimumPeaceLikeLevel]);
+            break;
+        case 0x17:
+            p->playerAI->tacticalAI.setStrategicNumber(SNPercentExplorationRequired, this->sn[SNPercentExplorationRequired]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNNumberEnemyObjectsRequired, this->sn[SNNumberEnemyObjectsRequired]);
+            break;
+        case 0x18:
+            p->playerAI->tacticalAI.setStrategicNumber(SNZeroPriorityDistance, this->sn[SNZeroPriorityDistance]);
+            break;
+        case 0x19:
+            p->playerAI->tacticalAI.setStrategicNumber(SNGroupFillMethod, this->sn[SNGroupFillMethod]);
+            p->playerAI->tacticalAI.setStrategicNumber(
+                SNGroupCommanderSelectionMethod, this->sn[SNGroupCommanderSelectionMethod]
+            );
+            break;
+        case 0x1a:
+            p->playerAI->tacticalAI.setStrategicNumber(SNAttackGroupGatherSpacing, this->sn[SNAttackGroupGatherSpacing]);
+            break;
+        case 0x1b:
+            p->playerAI->tacticalAI.setStrategicNumber(SNMinimumExploreGroupSize, this->sn[SNMinimumExploreGroupSize]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNMaximumExploreGroupSize, this->sn[SNMaximumExploreGroupSize]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNNumberExploreGroups, this->sn[SNNumberExploreGroups]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNExploreGroupMakeup, this->sn[SNExploreGroupMakeup]);
+            break;
+        case 0x1c:
+            p->playerAI->tacticalAI.setStrategicNumber(SNPercentHealthRetreat, this->sn[SNPercentHealthRetreat]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNPercentDeathRetreat, this->sn[SNPercentDeathRetreat]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNPercentUnitHealthRetreat, this->sn[SNPercentUnitHealthRetreat]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNScalePercentHealthRetreat, this->sn[SNScalePercentHealthRetreat]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNScalePercentDeathRetreat, this->sn[SNScalePercentDeathRetreat]);
+            p->playerAI->tacticalAI.setStrategicNumber(
+                SNScalePercentUnitHealthRetreat, this->sn[SNScalePercentUnitHealthRetreat]
+            );
+            break;
+        case 0x1d:
+            p->playerAI->tacticalAI.setStrategicNumber(SNAttackSeparationTime, this->sn[SNAttackSeparationTime]);
+            p->playerAI->tacticalAI.setStrategicNumber(
+                SNAttackSeparationTimeRandomness, this->sn[SNAttackSeparationTimeRandomness]
+            );
+            p->playerAI->tacticalAI.setStrategicNumber(SNAttackCoordination, this->sn[SNAttackCoordination]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNAttackIntelligence, this->sn[SNAttackIntelligence]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNInitialAttackDelay, this->sn[SNInitialAttackDelay]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNInitialAttackDelayType, this->sn[SNInitialAttackDelayType]);
+            break;
+        case 0x1e:
+            p->playerAI->tacticalAI.setStrategicNumber(SNAttackResponseSeparationTime, this->sn[SNAttackResponseSeparationTime]);
+            break;
+        case 0x1f:
+            p->playerAI->tacticalAI.setStrategicNumber(SNRetreatAfterTargetDestroyed, this->sn[SNRetreatAfterTargetDestroyed]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNBlotExplorationMap, this->sn[SNBlotExplorationMap]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNBlotSize, this->sn[SNBlotSize]);
+            p->playerAI->tacticalAI.setStrategicNumber(200, this->sn[200]);
+            break;
+        case 0x20:
+            p->playerAI->tacticalAI.setStrategicNumber(SNGoldDefendPriority, this->sn[SNGoldDefendPriority]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNStoneDefendPriority, this->sn[SNStoneDefendPriority]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNForageDefendPriority, this->sn[SNForageDefendPriority]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNChokePointDefendPriority, this->sn[SNChokePointDefendPriority]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNRuinsDefendPriority, this->sn[SNRuinsDefendPriority]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNArtifactDefendPriority, this->sn[SNArtifactDefendPriority]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNTownDefendPriority, this->sn[SNTownDefendPriority]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNDockDefendPriority, this->sn[SNDockDefendPriority]);
+            break;
+        case 0x21:
+            p->playerAI->tacticalAI.setStrategicNumber(SNNumberBoatAttackGroups, this->sn[SNNumberBoatAttackGroups]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNMinimumBoatAttackGroupSize, this->sn[SNMinimumBoatAttackGroupSize]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNMaximumBoatAttackGroupSize, this->sn[SNMaximumBoatAttackGroupSize]);
+            break;
+        case 0x22:
+            p->playerAI->tacticalAI.setStrategicNumber(SNNumberBoatExploreGroups, this->sn[SNNumberBoatExploreGroups]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNMinimumBoatExploreGroupSize, this->sn[SNMinimumBoatExploreGroupSize]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNMaximumBoatExploreGroupSize, this->sn[SNMaximumBoatExploreGroupSize]);
+            break;
+        case 0x23:
+            p->playerAI->tacticalAI.setStrategicNumber(SNDesiredNumberTradeEscorts, this->sn[SNDesiredNumberTradeEscorts]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNDesiredNumberFishEscorts, this->sn[SNDesiredNumberFishEscorts]);
+            p->playerAI->tacticalAI.setStrategicNumber(
+                SNDesiredNumberTransportEscorts, this->sn[SNDesiredNumberTransportEscorts]
+            );
+            p->playerAI->tacticalAI.setStrategicNumber(0xd8, this->sn[0xd8]);
+            break;
+        case 0x24:
+            p->playerAI->tacticalAI.setStrategicNumber(SNNumberBoatDefendGroups, this->sn[SNNumberBoatDefendGroups]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNMinimumBoatDefendGroupSize, this->sn[SNMinimumBoatDefendGroupSize]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNMaximumBoatDefendGroupSize, this->sn[SNMaximumBoatDefendGroupSize]);
+            break;
+        case 0x25:
+            p->playerAI->tacticalAI.setStrategicNumber(SNLockAttackAndAttackResponse, this->sn[SNLockAttackAndAttackResponse]);
+            break;
+        case 0x26:
+            p->playerAI->tacticalAI.setStrategicNumber(SNMinimumTownSize, this->sn[SNMinimumTownSize]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNMaximumTownSize, this->sn[SNMaximumTownSize]);
+            break;
+        case 0x27:
+            p->playerAI->tacticalAI.setStrategicNumber(SNConsecutiveIdleUnitLimit, this->sn[SNConsecutiveIdleUnitLimit]);
+            break;
+        case 0x28:
+            p->playerAI->tacticalAI.setStrategicNumber(SNTargetEvaluationDistance, this->sn[SNTargetEvaluationDistance]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNTargetEvaluationHitpoints, this->sn[SNTargetEvaluationHitpoints]);
+            p->playerAI->tacticalAI.setStrategicNumber(
+                SNTargetEvaluationDamageCapability, this->sn[SNTargetEvaluationDamageCapability]
+            );
+            p->playerAI->tacticalAI.setStrategicNumber(SNTargetEvaluationKills, this->sn[SNTargetEvaluationKills]);
+            p->playerAI->tacticalAI.setStrategicNumber(
+                SNTargetEvaluationAllyProximity, this->sn[SNTargetEvaluationAllyProximity]
+            );
+            p->playerAI->tacticalAI.setStrategicNumber(SNTargetEvaluationROF, this->sn[SNTargetEvaluationROF]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNTargetEvaluationRandomness, this->sn[SNTargetEvaluationRandomness]);
+            p->playerAI->tacticalAI.setStrategicNumber(
+                SNTargetEvaluationAttackAttempts, this->sn[SNTargetEvaluationAttackAttempts]
+            );
+            p->playerAI->tacticalAI.setStrategicNumber(SNTargetEvaluationRange, this->sn[SNTargetEvaluationRange]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNSpecialAttackType1, this->sn[SNSpecialAttackType1]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNSpecialAttackType2, this->sn[SNSpecialAttackType2]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNSpecialAttackType3, this->sn[SNSpecialAttackType3]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNSpecialAttackInfluence1, this->sn[SNSpecialAttackInfluence1]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNSpecialAttackInfluence2, this->sn[SNSpecialAttackInfluence2]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNSpecialAttackInfluence3, this->sn[SNSpecialAttackInfluence3]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNTargetEvaluationContinent, this->sn[SNTargetEvaluationContinent]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNTargetEvaluationSiegeWeapon, this->sn[SNTargetEvaluationSiegeWeapon]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNTargetEvaluationBoat, this->sn[SNTargetEvaluationBoat]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xb8, this->sn[0xb8]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xb9, this->sn[0xb9]);
+            break;
+        case 0x29:
+            p->playerAI->tacticalAI.setStrategicNumber(SNNumberWallGates, this->sn[SNNumberWallGates]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNSizeWallGates, this->sn[SNSizeWallGates]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNTownWallPattern, this->sn[SNTownWallPattern]);
+            break;
+        case 0x2a:
+            p->playerAI->tacticalAI.setStrategicNumber(SNStoragePitMaxDistance, this->sn[SNStoragePitMaxDistance]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNGranaryMaxDistance, this->sn[SNGranaryMaxDistance]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xca, this->sn[0xca]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNMaxStoragePits, this->sn[SNMaxStoragePits]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNMaxGranaries, this->sn[SNMaxGranaries]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNHouseOverage, this->sn[SNHouseOverage]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNRequiredFirstBuilding, this->sn[SNRequiredFirstBuilding]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xa8, this->sn[0xa8]);
+            break;
+        case 0x2b:
+            p->playerAI->tacticalAI.setStrategicNumber(SNTacticalUpdateFrequency, this->sn[SNTacticalUpdateFrequency]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNBuildFrequency, this->sn[SNBuildFrequency]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNBuildPlanDivisions, this->sn[SNBuildPlanDivisions]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNSpecificBuildItemToBuild, this->sn[SNSpecificBuildItemToBuild]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNSpecificBuildItemTime, this->sn[SNSpecificBuildItemTime]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNUnskippableItemType, this->sn[SNUnskippableItemType]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xb5, this->sn[0xb5]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xb6, this->sn[0xb6]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xb7, this->sn[0xb7]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xba, this->sn[0xba]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xbb, this->sn[0xbb]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xc2, this->sn[0xc2]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xc4, this->sn[0xc4]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xc5, this->sn[0xc5]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xbc, this->sn[0xbc]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xc3, this->sn[0xc3]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xbd, this->sn[0xbd]);
+            p->playerAI->tacticalAI.setStrategicNumber(
+                SNPercentageExploreExterminators, this->sn[SNPercentageExploreExterminators]
+            );
+            p->playerAI->tacticalAI.setStrategicNumber(199, this->sn[199]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xd7, this->sn[0xd7]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xd9, this->sn[0xd9]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNEasiestReactionPercentage, this->sn[SNEasiestReactionPercentage]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNEasierReactionPercentage, this->sn[SNEasierReactionPercentage]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xdd, this->sn[0xdd]);
+            break;
+        case 0x2c:
+            p->playerAI->tacticalAI.setStrategicNumber(SNScalingFrequency, this->sn[SNScalingFrequency]);
+            break;
+        case 0x2d:
+            p->playerAI->tacticalAI.setStrategicNumber(SNSaveScenarioInformation, this->sn[SNSaveScenarioInformation]);
+            break;
+        case 0x2e:
+            p->playerAI->tacticalAI.setStrategicNumber(SNMinimumWaterBodySizeForDock, this->sn[SNMinimumWaterBodySizeForDock]);
+            break;
+        case 0x2f:
+            p->playerAI->tacticalAI.setStrategicNumber(SNSkipAges, this->sn[SNSkipAges]);
+            p->playerAI->tacticalAI.setStrategicNumber(
+                SNNumberBuildAttemptsBeforeSkip, this->sn[SNNumberBuildAttemptsBeforeSkip]
+            );
+            p->playerAI->tacticalAI.setStrategicNumber(SNMaxSkipsPerAttempt, this->sn[SNMaxSkipsPerAttempt]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNTrainingRebuilds, this->sn[SNTrainingRebuilds]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNNumberMaxSkipCycles, this->sn[SNNumberMaxSkipCycles]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNMostNeededResourceLookAhead, this->sn[SNMostNeededResourceLookAhead]);
+            break;
+        case 0x30:
+            p->playerAI->tacticalAI.setStrategicNumber(SNTributeAmount, this->sn[SNTributeAmount]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNTributeChatFrequency, this->sn[SNTributeChatFrequency]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNTributeChatRandomness, this->sn[SNTributeChatRandomness]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNTributeTimeout, this->sn[SNTributeTimeout]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNTributePlayer, this->sn[SNTributePlayer]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNTributeSuccessOutcome, this->sn[SNTributeSuccessOutcome]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNTributeFailureOutcome, this->sn[SNTributeFailureOutcome]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNTributePersistence, this->sn[SNTributePersistence]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNTributeRevokeOnAttack, this->sn[SNTributeRevokeOnAttack]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xb2, this->sn[0xb2]);
+            p->playerAI->tacticalAI.setStrategicNumber(0xc9, this->sn[0xc9]);
+            break;
+        case 0x31:
+            p->playerAI->tacticalAI.setStrategicNumber(SNInitialFood, this->sn[SNInitialFood]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNInitialGold, this->sn[SNInitialGold]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNInitialStone, this->sn[SNInitialStone]);
+            p->playerAI->tacticalAI.setStrategicNumber(SNInitialWood, this->sn[SNInitialWood]);
+            break;
+        default:
+            return 0;
+    }
+
+    return 1;
+}
+
+int VictoryConditionRuleSystem::stopExecution(TRIBE_Player* p, int ruleNumber) {
+    return 0;
+}
+
+struct ScaleLocals {
+    float scale1;
+    float scale3;
+    int tmp;
+};
+
+void VictoryConditionRuleSystem::modifyForDifficultyLevel(int dL) {
+    if (dL != 0) {
+        int add1 = 0;
+        int add2 = 0;
+        int add3 = 0;
+        ScaleLocals locals;
+        locals.scale1 = 1.0f;
+        locals.scale3 = 1.0f;
+
+        switch (dL) {
+            case 1:
+                if (rge_base_game->scenarioGame() == 1) {
+                    locals.scale1 = 0.8f;
+                    add1 = 30;
+                    locals.scale3 = 0.8f;
+                    add2 = 120;
+                    add3 = 1;
+                }
+                break;
+            case 2:
+                locals.scale1 = 0.6f;
+                add1 = 60;
+                locals.scale3 = 0.6f;
+                add2 = 240;
+                add3 = 2;
+                break;
+            case 3:
+                locals.scale1 = 0.4f;
+                add1 = 90;
+                locals.scale3 = 0.4f;
+                add2 = (rge_base_game->scenarioGame() == 1) ? 360 : 900;
+                add3 = 3;
+                break;
+            case 4:
+                locals.scale1 = 0.2f;
+                add1 = 120;
+                locals.scale3 = 0.2f;
+                add2 = (rge_base_game->scenarioGame() == 1) ? 480 : 1260;
+                add3 = 4;
+                break;
+            default:
+                return;
+        }
+
+        locals.tmp = this->sn[SNNumberAttackGroups];
+        if (locals.tmp > 0) {
+            locals.tmp = (long) ((float) locals.tmp * locals.scale1);
+            this->sn[SNNumberAttackGroups] = locals.tmp;
+            if (locals.tmp == 0) {
+                this->sn[SNNumberAttackGroups] = 1;
+            }
+        }
+        locals.tmp = this->sn[SNMinimumAttackGroupSize];
+        if (locals.tmp > 0) {
+            locals.tmp = (long) ((float) locals.tmp * locals.scale1);
+            this->sn[SNMinimumAttackGroupSize] = locals.tmp;
+            if (locals.tmp == 0) {
+                this->sn[SNMinimumAttackGroupSize] = 1;
+            }
+        }
+        locals.tmp = this->sn[SNMaximumAttackGroupSize];
+        if (locals.tmp > 0) {
+            locals.tmp = (long) ((float) locals.tmp * locals.scale1);
+            this->sn[SNMaximumAttackGroupSize] = locals.tmp;
+            if (locals.tmp == 0) {
+                this->sn[SNMaximumAttackGroupSize] = 1;
+            }
+        }
+
+        this->sn[SNAttackSeparationTime] += add1;
+        this->sn[SNAttackResponseSeparationTime] += add1;
+
+        locals.tmp = this->sn[SNPercentEnemySightedResponse];
+        if (locals.tmp > 0) {
+            locals.tmp = (long) ((float) locals.tmp * locals.scale3);
+            this->sn[SNPercentEnemySightedResponse] = locals.tmp;
+            if (locals.tmp == 0) {
+                this->sn[SNPercentEnemySightedResponse] = 1;
+            }
+        }
+        locals.tmp = this->sn[SNEnemySightedResponseDistance];
+        if (locals.tmp > 0) {
+            locals.tmp = (long) ((float) locals.tmp * locals.scale3);
+            this->sn[SNEnemySightedResponseDistance] = locals.tmp;
+            if (locals.tmp == 0) {
+                this->sn[SNEnemySightedResponseDistance] = 1;
+            }
+        }
+
+        this->sn[SNInitialAttackDelay] += add2;
+
+        locals.tmp = this->sn[SNMinimumDefendGroupSize];
+        if (locals.tmp > 0) {
+            locals.tmp = (long) ((float) locals.tmp * locals.scale1);
+            this->sn[SNMinimumDefendGroupSize] = locals.tmp;
+            if (locals.tmp == 0) {
+                this->sn[SNMinimumDefendGroupSize] = 1;
+            }
+        }
+        locals.tmp = this->sn[SNMaximumDefendGroupSize];
+        if (locals.tmp > 0) {
+            locals.tmp = (long) ((float) locals.tmp * locals.scale1);
+            this->sn[SNMaximumDefendGroupSize] = locals.tmp;
+            if (locals.tmp == 0) {
+                this->sn[SNMaximumDefendGroupSize] = 1;
+            }
+        }
+        locals.tmp = this->sn[SNNumberDefendGroups];
+        if (locals.tmp > 0) {
+            locals.tmp = (long) ((float) locals.tmp * locals.scale1);
+            this->sn[SNNumberDefendGroups] = locals.tmp;
+            if (locals.tmp == 0) {
+                this->sn[SNNumberDefendGroups] = 1;
+            }
+        }
+        locals.tmp = this->sn[SNNumberBoatAttackGroups];
+        if (locals.tmp > 0) {
+            locals.tmp = (long) ((float) locals.tmp * locals.scale1);
+            this->sn[SNNumberBoatAttackGroups] = locals.tmp;
+            if (locals.tmp == 0) {
+                this->sn[SNNumberBoatAttackGroups] = 1;
+            }
+        }
+        locals.tmp = this->sn[SNMinimumBoatAttackGroupSize];
+        if (locals.tmp > 0) {
+            locals.tmp = (long) ((float) locals.tmp * locals.scale1);
+            this->sn[SNMinimumBoatAttackGroupSize] = locals.tmp;
+            if (locals.tmp == 0) {
+                this->sn[SNMinimumBoatAttackGroupSize] = 1;
+            }
+        }
+        locals.tmp = this->sn[SNMaximumBoatAttackGroupSize];
+        if (locals.tmp > 0) {
+            locals.tmp = (long) ((float) locals.tmp * locals.scale1);
+            this->sn[SNMaximumBoatAttackGroupSize] = locals.tmp;
+            if (locals.tmp == 0) {
+                this->sn[SNMaximumBoatAttackGroupSize] = 1;
+            }
+        }
+        locals.tmp = this->sn[SNNumberBoatDefendGroups];
+        if (locals.tmp > 0) {
+            locals.tmp = (long) ((float) locals.tmp * locals.scale1);
+            this->sn[SNNumberBoatDefendGroups] = locals.tmp;
+            if (locals.tmp == 0) {
+                this->sn[SNNumberBoatDefendGroups] = 1;
+            }
+        }
+        locals.tmp = this->sn[SNMinimumBoatDefendGroupSize];
+        if (locals.tmp > 0) {
+            locals.tmp = (long) ((float) locals.tmp * locals.scale1);
+            this->sn[SNMinimumBoatDefendGroupSize] = locals.tmp;
+            if (locals.tmp == 0) {
+                this->sn[SNMinimumBoatDefendGroupSize] = 1;
+            }
+        }
+        locals.tmp = this->sn[SNMaximumBoatDefendGroupSize];
+        if (locals.tmp > 0) {
+            locals.tmp = (long) ((float) locals.tmp * locals.scale1);
+            this->sn[SNMaximumBoatDefendGroupSize] = locals.tmp;
+            if (locals.tmp == 0) {
+                this->sn[SNMaximumBoatDefendGroupSize] = 1;
+            }
+        }
+
+        this->sn[SNTacticalUpdateFrequency] += add3;
+        if (dL <= 3) {
+            this->sn[SNAttackIntelligence] = 1;
+        } else {
+            this->sn[SNAttackIntelligence] = 0;
+        }
+    }
+}
+
+extern "C" char* __cdecl strcpy(char* destination, const char* source);
+
+TribeStrategyAIModule::TribeStrategyAIModule(void* pW, int playerID) :
+    StrategyAIModule(pW, playerID), md(0), currentVictoryConditionValue(-1), targetIDValue(-1), targetTypeValue(-1),
+    secondTargetIDValue(-1), secondTargetTypeValue(-1), targetAttributeValue(-1), targetNumberValue(-1),
+    victoryConditionChangeTimeout(0), vcRuleSet(), executingRules(), idleRules(), vcRules(), difficultyLevel(0) {
+    this->targetPoint1Value.x = -1.0f;
+    this->targetPoint1Value.y = -1.0f;
+    this->targetPoint1Value.z = -1.0f;
+    this->targetPoint2Value.x = -1.0f;
+    this->targetPoint2Value.y = -1.0f;
+    this->targetPoint2Value.z = -1.0f;
+    strcpy(this->ruleSetNameValue, "");
+}
+
+TribeStrategyAIModule::TribeStrategyAIModule(int playerID, int infile) :
+    StrategyAIModule((void*) 0, playerID), md(0), vcRuleSet(), executingRules(), idleRules(), vcRules(), difficultyLevel(0) {
+    rge_read(infile, &this->currentVictoryConditionValue, 4);
+    rge_read(infile, &this->targetIDValue, 4);
+    rge_read(infile, &this->secondTargetIDValue, 4);
+    rge_read(infile, &this->secondTargetTypeValue, 4);
+    rge_read(infile, &this->targetPoint1Value, 16);
+    rge_read(infile, &this->targetPoint2Value, 16);
+    rge_read(infile, &this->targetAttributeValue, 4);
+    rge_read(infile, &this->targetNumberValue, 4);
+    rge_read(infile, &this->victoryConditionChangeTimeout, 4);
+    if (save_game_version >= g_strategy_ai_save_version_1_5) {
+        rge_read(infile, &this->difficultyLevel, 4);
+    }
+
+    int tempIntNum;
+    int i;
+    int tempInt;
+
+    rge_read(infile, &tempIntNum, 4);
+    rge_read(infile, this->ruleSetNameValue, tempIntNum);
+    this->ruleSetNameValue[tempIntNum] = 0;
+    this->loadRules(this->ruleSetNameValue);
+    this->setDifficultyLevel(this->difficultyLevel);
+
+    rge_read(infile, &tempInt, 4);
+    for (i = 0; i < tempInt; ++i) {
+        rge_read(infile, &tempIntNum, 4);
+        this->vcRuleSet.add(tempIntNum);
+    }
+    rge_read(infile, &tempInt, 4);
+    for (i = 0; i < tempInt; ++i) {
+        rge_read(infile, &tempIntNum, 4);
+        this->executingRules.add(tempIntNum);
+    }
+    rge_read(infile, &tempInt, 4);
+    for (i = 0; i < tempInt; ++i) {
+        rge_read(infile, &tempIntNum, 4);
+        this->idleRules.add(tempIntNum);
+    }
+}
+
+void __cdecl operator delete(void* ptr);
+
+TribeStrategyAIModule::~TribeStrategyAIModule() {
+}
+
+extern void* __cdecl operator new(size_t size);
+extern void __cdecl operator delete(void* pointer);
+
+int TribeStrategyAIModule::update(int timeLimit) {
+    int i;
+    int result;
+    int bestRule;
+    int worstRule;
+    int bestResult;
+    int worstRuleResult;
+
+    this->victoryConditionChangeTimeout++;
+    if (this->victoryConditionChangeTimeout >= 0) {
+        this->victoryConditionChangeTimeout = 0;
+
+        int victoryCondition = 11;
+        RGE_Victory_Entry* entry = this->md->player->victory_conditions->condition_raw_info(0);
+        if (entry != 0) {
+            victoryCondition = entry->command;
+            if (entry->target_obj != 0) {
+                this->targetIDValue = entry->target_obj->id;
+                this->targetTypeValue = entry->target_obj->master_obj->id;
+            }
+            if (entry->this_obj != 0) {
+                this->secondTargetIDValue = entry->this_obj->id;
+                this->secondTargetTypeValue = entry->this_obj->master_obj->id;
+            }
+            this->targetPoint1Value.x = entry->x0;
+            this->targetPoint1Value.y = entry->y0;
+            this->targetPoint1Value.z = 1.0f;
+            this->targetPoint2Value.x = entry->x1;
+            this->targetPoint2Value.y = entry->y1;
+            this->targetPoint2Value.z = 1.0f;
+            this->targetAttributeValue = entry->number;
+            this->targetNumberValue = entry->count;
+        }
+
+        if (victoryCondition != this->currentVictoryConditionValue)
+            this->setVictoryCondition(victoryCondition);
+    }
+
+    bestResult = 0;
+    bestRule = -1;
+    for (i = 0; i < this->idleRules.numberValue; i++) {
+        result = this->vcRules.evaluateAsNonInProgress(this->md->aiPlayer, this->idleRules[i]);
+        if (result > bestResult) {
+            bestRule = this->idleRules[i];
+            bestResult = result;
+        }
+    }
+
+    if (bestRule != -1 && this->vcRules.execute(this->md->aiPlayer, this->currentVictoryConditionValue, bestRule) == 1) {
+        this->executingRules.add(bestRule);
+        this->idleRules.remove(bestRule);
+    }
+
+    worstRule = -1;
+    worstRuleResult = 101;
+    for (i = 0; i < this->executingRules.numberValue; i++) {
+        result = this->vcRules.evaluateAsInProgress(this->md->aiPlayer, this->executingRules[i]);
+        if (result < worstRuleResult) {
+            worstRule = this->executingRules[i];
+            worstRuleResult = result;
+        }
+    }
+
+    if (worstRule != -1 && this->vcRules.stopExecution(this->md->aiPlayer, worstRule) == 1) {
+        this->executingRules.remove(worstRule);
+        this->idleRules.add(worstRule);
+    }
+
+    for (i = 0; i < this->vcRuleSet.numberValue; i++) {
+        if (this->vcRules.evaluateAsNonInProgress(this->md->aiPlayer, this->vcRuleSet[i]) == -1) {
+            this->vcRules.execute(this->md->aiPlayer, this->currentVictoryConditionValue, this->vcRuleSet[i]);
+        }
+    }
+
+    return 1;
+}
+
+void TribeStrategyAIModule::setMainDecisionAI(TribeMainDecisionAIModule* m) {
+    this->md = m;
+}
+
+#include <string.h>
+
+void __cdecl rge_write(int fd, void* data, int size);
+void* __cdecl operator new(size_t size);
+void __cdecl operator delete(void* p);
+
+int TribeStrategyAIModule::save(int outfile) {
+    int tempInt;
+    char tempString[260];
+    int i;
+
+    rge_write(outfile, &this->currentVictoryConditionValue, 4);
+    rge_write(outfile, &this->targetIDValue, 4);
+    rge_write(outfile, &this->secondTargetIDValue, 4);
+    rge_write(outfile, &this->secondTargetTypeValue, 4);
+    rge_write(outfile, &this->targetPoint1Value, 16);
+    rge_write(outfile, &this->targetPoint2Value, 16);
+    rge_write(outfile, &this->targetAttributeValue, 4);
+    rge_write(outfile, &this->targetNumberValue, 4);
+    rge_write(outfile, &this->victoryConditionChangeTimeout, 4);
+    rge_write(outfile, &this->difficultyLevel, 4);
+
+    strcpy(tempString, this->ruleSetNameValue);
+    tempInt = strlen(tempString);
+    rge_write(outfile, &tempInt, 4);
+    rge_write(outfile, tempString, strlen(tempString));
+
+    tempInt = this->vcRuleSet.numberValue;
+    rge_write(outfile, &tempInt, 4);
+    for (i = 0; i < this->vcRuleSet.numberValue; i++) {
+        if (i > this->vcRuleSet.maximumSizeValue - 1) {
+            int newMax = i + 1;
+            int* newArr = (int*) operator new(i * 4 + 4);
+            if (newArr) {
+                int j;
+                for (j = 0; j < this->vcRuleSet.maximumSizeValue && j < newMax; j++) {
+                    newArr[j] = this->vcRuleSet.value[j];
+                }
+                operator delete(this->vcRuleSet.value);
+                this->vcRuleSet.value = newArr;
+                this->vcRuleSet.maximumSizeValue = newMax;
+            }
+        }
+        tempInt = this->vcRuleSet.value[i];
+        rge_write(outfile, &tempInt, 4);
+    }
+
+    tempInt = this->executingRules.numberValue;
+    rge_write(outfile, &tempInt, 4);
+    for (i = 0; i < this->executingRules.numberValue; i++) {
+        if (i > this->executingRules.maximumSizeValue - 1) {
+            int newMax = i + 1;
+            int* newArr = (int*) operator new(i * 4 + 4);
+            if (newArr) {
+                int j;
+                for (j = 0; j < this->executingRules.maximumSizeValue && j < newMax; j++) {
+                    newArr[j] = this->executingRules.value[j];
+                }
+                operator delete(this->executingRules.value);
+                this->executingRules.value = newArr;
+                this->executingRules.maximumSizeValue = newMax;
+            }
+        }
+        tempInt = this->executingRules.value[i];
+        rge_write(outfile, &tempInt, 4);
+    }
+
+    tempInt = this->idleRules.numberValue;
+    rge_write(outfile, &tempInt, 4);
+    for (i = 0; i < this->idleRules.numberValue; i++) {
+        if (i > this->idleRules.maximumSizeValue - 1) {
+            int newMax = i + 1;
+            int* newArr = (int*) operator new(i * 4 + 4);
+            if (newArr) {
+                int j;
+                for (j = 0; j < this->idleRules.maximumSizeValue && j < newMax; j++) {
+                    newArr[j] = this->idleRules.value[j];
+                }
+                operator delete(this->idleRules.value);
+                this->idleRules.value = newArr;
+                this->idleRules.maximumSizeValue = newMax;
+            }
+        }
+        tempInt = this->idleRules.value[i];
+        rge_write(outfile, &tempInt, 4);
+    }
+
+    return 1;
+}
+
+char* TribeStrategyAIModule::ruleSetName() {
+    return this->ruleSetNameValue;
+}
+
+// WASM: use <string.h> size_t declaration.
+
+int TribeStrategyAIModule::loadRules(char* rName) {
+    if (rName == 0) {
+        return (int) rName;
+    }
+    strncpy(this->ruleSetNameValue, rName, 255);
+    return this->vcRules.loadRules(this->ruleSetNameValue);
+}
+
+void TribeStrategyAIModule::setRule(int ruleIndex, int value) {
+    this->logCommonHistory((char*) "Setting SN[%d] to %d.", ruleIndex, value);
+    this->vcRules.setRule(ruleIndex, value);
+}
+
+int TribeStrategyAIModule::rule(int ruleIndex) {
+    return this->vcRules.rule(ruleIndex);
+}
+
+void TribeStrategyAIModule::setDifficultyLevel(int difficultyLevel) {
+    this->vcRules.modifyForDifficultyLevel(difficultyLevel);
+}
+
+int TribeStrategyAIModule::currentVictoryCondition() const {
+    return this->currentVictoryConditionValue;
+}
+
+int TribeStrategyAIModule::targetID() const {
+    return this->targetIDValue;
+}
+
+int TribeStrategyAIModule::targetType() const {
+    return this->targetTypeValue;
+}
+
+int TribeStrategyAIModule::secondTargetID() const {
+    return this->secondTargetIDValue;
+}
+
+int TribeStrategyAIModule::secondTargetType() const {
+    return this->secondTargetTypeValue;
+}
+
+const Waypoint& TribeStrategyAIModule::targetPoint1() const {
+    return this->targetPoint1Value;
+}
+
+const Waypoint& TribeStrategyAIModule::targetPoint2() const {
+    return this->targetPoint2Value;
+}
+
+int TribeStrategyAIModule::targetAttribute() const {
+    return this->targetAttributeValue;
+}
+
+int TribeStrategyAIModule::targetNumber() const {
+    return this->targetNumberValue;
+}
+
+class TRIBE_Player;
+
+#define ADD_REQUIRED(valueToAdd) do { \
+    v = (valueToAdd); \
+    if (rules->contains(v) != 1) { \
+        if (rules->numberValue > rules->maximumSizeValue - 1) \
+            rules->resize(rules->numberValue + 1); \
+        rules->value[rules->numberValue] = v; \
+        rules->numberValue++; \
+    } \
+} while (0)
+
+#pragma inline_depth(0)
+
+void TribeStrategyAIModule::setVictoryCondition(int vcNumber) {
+    ManagedArray<int>* rules = &this->vcRuleSet;
+    int v;
+    int i;
+
+    this->currentVictoryConditionValue = vcNumber;
+    this->vcRuleSet.numberValue = 0;
+
+    ADD_REQUIRED(1);
+    ADD_REQUIRED(2);
+    ADD_REQUIRED(0x0C);
+    ADD_REQUIRED(0x0D);
+    ADD_REQUIRED(0x0E);
+    ADD_REQUIRED(0x10);
+    ADD_REQUIRED(0x11);
+    ADD_REQUIRED(0x12);
+    ADD_REQUIRED(0x15);
+    ADD_REQUIRED(0x16);
+    ADD_REQUIRED(0x17);
+    ADD_REQUIRED(0x18);
+    ADD_REQUIRED(0x19);
+
+    rules->add(0x1A);
+    rules->add(0x1B);
+    rules->add(0x1C);
+    rules->add(0x1D);
+    rules->add(0x1E);
+    rules->add(0x1F);
+    rules->add(0x20);
+    rules->add(0x21);
+    rules->add(0x22);
+    rules->add(0x23);
+    rules->add(0x24);
+    rules->add(0x25);
+    rules->add(0x26);
+    rules->add(0x27);
+    rules->add(0x28);
+    rules->add(0x29);
+    rules->add(0x2A);
+    rules->add(0x2B);
+    rules->add(0x2C);
+    rules->add(0x2D);
+    rules->add(0x2E);
+    rules->add(0x2F);
+    rules->add(0x30);
+    rules->add(0x31);
+
+    i = 0;
+    if (this->vcRuleSet.numberValue > 0) {
+        do {
+            int rule = (*rules)[i];
+            int result = this->vcRules.evaluateAsNonInProgress(this->md->aiPlayer, rule);
+            if (result == -2) {
+                rule = (*rules)[i];
+                if (this->vcRules.execute(this->md->aiPlayer, this->currentVictoryConditionValue, rule) == 1) {
+                    this->executingRules.add((*rules)[i]);
+                } else {
+                    this->idleRules.add((*rules)[i]);
+                }
+            }
+            i++;
+        } while (i < this->vcRuleSet.numberValue);
+    }
+}
+
+int TribeStrategyAIModule::isRuleExecuting(int ruleNumber) {
+    int i;
+
+    for (i = 0; i < this->executingRules.numberValue; i = i + 1) {
+        if (i >= this->executingRules.maximumSizeValue) {
+            return 0;
+        }
+        if (this->executingRules.value[i] == ruleNumber) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int TribeStrategyAIModule::isRuleIdle(int ruleNumber) {
+    int i;
+
+    for (i = 0; i < this->idleRules.numberValue; i = i + 1) {
+        if (i >= this->idleRules.maximumSizeValue) {
+            return 0;
+        }
+        if (this->idleRules.value[i] == ruleNumber) {
+            return 1;
+        }
+    }
+    return 0;
+}

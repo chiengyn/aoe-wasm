@@ -1,0 +1,232 @@
+#include "../include/game_globals.h"
+#include "../include/rge_fio.h"
+#include "../include/task_lst.h"
+#include "../include/act_obj.h"
+#include "../include/stat_obj.h"
+#include "../include/m_s_obj.h"
+#include "../include/player.h"
+#include "../include/map.h"
+#include "../include/world.h"
+#include <stdlib.h>
+
+RGE_Task_List::RGE_Task_List() {
+    list_num = 0;
+    list = 0;
+}
+
+RGE_Task_List::~RGE_Task_List() {
+    delete_list();
+}
+
+void RGE_Task_List::copy(RGE_Task_List* other_list) {
+    if (list)
+        delete_list();
+
+    list_num = other_list->list_num;
+    if (list_num > 0) {
+        list = (RGE_Task**) calloc((int) list_num, 4);
+        for (short i = 0; i < list_num; i++) {
+            list[i] = create_task(other_list->list[i]->task_type, i);
+            list[i]->copy(other_list->list[i]);
+        }
+    }
+}
+
+void RGE_Task_List::load(int infile, RGE_Sprite** sprites, RGE_Sound** sounds) {
+    short task_type;
+    RGE_Task_List* self = this;
+
+    if (self->list)
+        self->delete_list();
+
+    rge_read(infile, &self->list_num, 2);
+    if (self->list_num <= 0)
+        return;
+
+    self->list = (RGE_Task**) calloc(self->list_num, 4);
+    for (int i = 0; (short) i < self->list_num; i++) {
+        rge_read(infile, &task_type, 2);
+        self->list[(short) i] = self->create_task(task_type, i);
+        self->list[(short) i]->load(infile, sprites, sounds);
+    }
+}
+
+void RGE_Task_List::load(FILE* infile, RGE_Sprite** sprites, RGE_Sound** sounds) {
+    short task_type;
+
+    if (list)
+        delete_list();
+
+    fscanf(infile, "%hd", &list_num);
+    if (list_num > 0) {
+        list = (RGE_Task**) calloc((int) list_num, 4);
+        for (int i = 0; (short) i < list_num; i++) {
+            fscanf(infile, "%hd", &task_type);
+            list[(short) i] = create_task(task_type, i);
+            list[(short) i]->load(infile, sprites, sounds);
+        }
+    }
+}
+
+void RGE_Task_List::save(int outfile) {
+    rge_write(outfile, &list_num, 2);
+    for (short i = 0; i < list_num; ++i)
+        list[i]->save(outfile);
+}
+
+void RGE_Task_List::delete_list() {
+    short i = 0;
+
+    if (list != 0) {
+        if (list_num > 0) {
+            do {
+                RGE_Task* task = list[i];
+                if (task != 0) {
+                    delete task;
+                    list[i] = 0;
+                }
+                ++i;
+            } while (i < list_num);
+        }
+
+        free(list);
+        list = 0;
+    }
+
+    list_num = 0;
+}
+
+RGE_Task* RGE_Task_List::create_task(short task_type, short index) {
+    if (task_type != 1)
+        return 0;
+
+    RGE_Task* task = new RGE_Task(index);
+    return task;
+}
+
+RGE_Task* RGE_Task_List::get_target_task(
+    RGE_Action_Object* obj, RGE_Static_Object* target_obj, float target_x, float target_y, float target_z
+) {
+    int i;
+    short terrain_type;
+
+    if (list_num == 0)
+        return 0;
+
+    if (target_obj != 0) {
+        if (target_obj->object_state == RGE_OBJECT_STATE_UNBUILT) {
+            for (i = 0; i < list_num; i++) {
+                RGE_Task* task = list[i];
+                if (task->state_building == 1) {
+                    if (check_task(task, obj, target_obj))
+                        return task;
+                }
+            }
+        }
+
+        for (i = 0; i < list_num; i++) {
+            RGE_Task* task = list[i];
+            if (task->object_id == target_obj->master_obj->id) {
+                if (check_task(task, obj, target_obj))
+                    return task;
+            }
+        }
+
+        for (i = 0; i < list_num; i++) {
+            RGE_Task* task = list[i];
+            if (task->object_group == target_obj->master_obj->object_group) {
+                if (check_task(task, obj, target_obj))
+                    return task;
+            }
+        }
+
+        if (target_obj->object_state < RGE_OBJECT_STATE_DYING && target_obj->master_obj->combat_level > 0) {
+            for (i = 0; i < list_num; i++) {
+                RGE_Task* task = list[i];
+                if (task->combat_level > 0) {
+                    if (check_task(task, obj, target_obj))
+                        return task;
+                }
+            }
+        }
+    }
+
+    // A negative-one coordinate skips terrain lookup.
+    if (target_x != g_task_invalid_coordinate && target_y != g_task_invalid_coordinate) {
+        short tile_x = (short) (int) target_x;
+        short tile_y = (short) (int) target_y;
+        RGE_Map* map = obj->owner->world->map;
+
+        if (tile_x >= 0 && tile_x < map->map_width && tile_y >= 0 && tile_y < map->map_height) {
+            terrain_type = (unsigned char) map->get_terrain(tile_x, tile_y);
+            for (i = 0; i < list_num; i++) {
+                RGE_Task* task = list[i];
+                if (task->terrain_id == terrain_type)
+                    return task;
+            }
+        }
+    }
+
+    return 0;
+}
+
+int RGE_Task_List::is_attack_task(RGE_Task* task) {
+    return task->action_type == 7;
+}
+
+int RGE_Task_List::check_task(RGE_Task* task, RGE_Action_Object* obj, RGE_Static_Object* target_obj) {
+    // Reject a missing held attribute or a non-positive amount.
+    if (task->holding_attr == 1) {
+        if (target_obj->attribute_type_held == -1 || target_obj->attribute_amount_held <= g_task_nonpositive_amount_threshold)
+            return 0;
+    }
+
+    switch (task->owner_type) {
+        case 1:
+            if (target_obj->owner != obj->owner)
+                return 0;
+            break;
+
+        case 2:
+            if (target_obj->owner != obj->owner) {
+                if (target_obj->owner->id != 0) {
+                    if (!obj->owner->relation(target_obj->owner->id))
+                        return 0;
+                    break;
+                }
+            }
+            return 0;
+
+        case 3:
+            if (target_obj->owner->id == 0)
+                break;
+            return 0;
+
+        case 4:
+            if (target_obj->owner == obj->owner)
+                return 1;
+            if (target_obj->owner->id != 0) {
+                if (obj->owner->isAlly(target_obj->owner->id)) {
+                    if (target_obj->owner->isAlly(obj->owner->id))
+                        return 1;
+                }
+            }
+            return 0;
+
+        case 5:
+            if (target_obj->owner == obj->owner)
+                goto case5_failure;
+            if (target_obj->owner->id != 0) {
+                if (!obj->owner->relation(target_obj->owner->id))
+                    goto case5_failure;
+            }
+            if (target_obj->owner->id == 0 && obj->master_obj->combat_level == 0)
+                goto case5_failure;
+            break;
+
+        case5_failure:
+            return 0;
+    }
+
+    return (int) (obj != target_obj);
+}
