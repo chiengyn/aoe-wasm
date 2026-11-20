@@ -53,6 +53,31 @@ python3 tools/serve.py            # --host 0.0.0.0 to allow other machines on th
 Don't open the HTML file through `file://`. The page needs the local server for the WASM, the game files and
 the multiplayer relay.
 
+### Docker
+
+The image builds the release engine with Emscripten and downloads the music files. It then runs the
+server on port 8788. **It contains no game data.** Mount your own installation at `/game`. On first start,
+the container prepares the data into the `/app/web/game` volume; later starts reuse it.
+
+```sh
+docker build -t aoe-wasm .                    # --build-arg MUSIC=0 leaves out the MIDI synth and soundfont
+docker run -d --name aoe -p 8788:8788 \
+  -v aoe-data:/app/web/game \
+  -v "/path/to/Age of Empires:/game:ro" \
+  aoe-wasm
+```
+
+Or set `AOE_GAME_DIR=/path/to/Age of Empires` (in the shell or a `.env` file) and run
+`docker compose up -d --build`. `docker run … aoe-wasm prepare` prepares the data again, for example
+after you change the game folder. `PORT` changes the port inside the container.
+
+Behind a TLS reverse proxy (for example nginx or Caddy), forward the `Host` header and allow the
+WebSocket upgrade on `/api/dplay`. The page then connects over `wss://` on its own. Everything else is
+static files.
+
+Don't publish a server with the game data on the open internet. The prepared files are the copyrighted
+game, so keep the server private (LAN, VPN, or behind authentication on the proxy).
+
 ### Playing multiplayer
 
 1. Open `http://127.0.0.1:8788/` in two **separate browser windows**. Chrome throttles background tabs, so
@@ -93,6 +118,7 @@ formats/             Standalone C readers for DRS/SLP/palettes (assets.c) and DA
 tests/               Node and Python test suites; tests/lib/ holds the JS wrappers they share
 docs/                PLAN.md (port plan and detailed progress log) and images
 reports/             Output of tests and tools (git-ignored)
+Dockerfile, docker/  Container image (engine build + server) and its entry point; compose.yaml
 ```
 
 Generated folders are git-ignored: `engine/build/`, `engine/build-release/`, `formats/build/`,

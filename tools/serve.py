@@ -54,7 +54,9 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header('X-Content-Type-Options','nosniff')
         super().end_headers()
     def same_origin(self):
-        return self.headers.get('Origin') in (None,'http://'+self.headers.get('Host',''))
+        # https: when the page is served through a TLS reverse proxy that passes the Host header on.
+        host=self.headers.get('Host','')
+        return self.headers.get('Origin') in (None,'http://'+host,'https://'+host)
     def do_GET(self):
         if self.path.split('?')[0]!='/api/dplay':return super().do_GET()
         # DirectPlay relay for the real game (web/native-dplay.mjs <-> tools/dplay_relay.py).

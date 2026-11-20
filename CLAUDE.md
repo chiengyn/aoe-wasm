@@ -27,6 +27,7 @@ python3 tools/fetch_vendor.py                        # web/vendor: SpessaSynth +
 
 # Run
 python3 tools/serve.py        # http://127.0.0.1:8788/ ; --host 0.0.0.0 for LAN
+docker build -t aoe-wasm .    # image without game data; mount it at /game (README, "Docker")
 
 # Tests (headless Node; each writes reports/<name>.json)
 node tests/test_native_menu.mjs

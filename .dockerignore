@@ -1,0 +1,16 @@
+# Keep the build context small and free of game data and local build outputs.
+.git/
+**/build/
+**/build-release/
+web/engine/
+web/vendor/
+web/game/
+web/game-*/
+reports/
+docs/
+tests/
+formats/
+**/__pycache__/
+*.pyc
+.venv/
+node_modules/
