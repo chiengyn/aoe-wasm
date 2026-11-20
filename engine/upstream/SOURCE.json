@@ -3,7 +3,7 @@
   "commit": "6d6d8b14023aa74e6ac30a6c88229d5b818fb805",
   "purpose": "WASM port of recovered C++ engine; reference beta is different from supplied retail EXE.",
   "changes": {
-    "changed_files": 52,
+    "changed_files": 56,
     "categories": [
       "Use canonical C/C++ library declarations and size_t for operator new",
       "Fix case-sensitive include filenames and C/C++ linkage",

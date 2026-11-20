@@ -7,7 +7,8 @@
 //
 // Wire format: one opcode byte, then little-endian fields. Strings are a u16 length + bytes (Windows-1252),
 // blobs a u32 length + bytes. A session description is instance GUID (16) + application GUID (16) + flags,
-// max players, current players and 4 user u32s + name string + password string.
+// max players, current players and 4 user u32s + name string + password string. The relay always sends an
+// empty password and sets SessionPasswordRequired instead (as DirectPlay did in session lists).
 package relay
 
 import (
@@ -63,6 +64,7 @@ const (
 	SessionNewPlayersDisabled = 0x1
 	SessionMigrateHost        = 0x4
 	SessionJoinDisabled       = 0x20
+	SessionPasswordRequired   = 0x400 // set by the relay: the password itself never leaves it
 	EnumSessionsAll           = 0x2
 	SetLocal                  = 0x1
 )

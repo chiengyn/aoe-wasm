@@ -107,7 +107,7 @@
      return TEasy_Panel::setup(render_area_in, 0, 0, -1, 1, 0, 0, 0, 0, allow_shadow_area_in) != 0;
  }
  
-@@ -43,6 +50,10 @@
+@@ -43,6 +50,16 @@
  
      local.save_focus = this->have_focus;
      is_new = (this != last_screen) ? 1 : 0;
@@ -115,6 +115,12 @@
 +    // Widescreen (browser port): the display takes the size of the screen being shown (the game screen widens).
 +    if (have_focus_in && rge_base_game != 0)
 +        rge_base_game->fit_screen(this, 0);
++#ifdef __EMSCRIPTEN__
++    // Browser port: the web lobby's room follows the screens shown (platform/room_launch.cpp).
++    extern void wasm_room_screen(const char*);
++    if (have_focus_in)
++        wasm_room_screen(this->panelName());
++#endif
  
      if (this->render_area && this->render_area->DrawSystem && have_focus_in && is_new) {
          TDrawSystem* system = this->render_area->DrawSystem;
@@ -598,6 +604,101 @@
  void __cdecl operator delete(void* block);
  RGE_Scenario_Header::RGE_Scenario_Header(RGE_Scenario* scenario_info) {
      this->error_code = 0;
+--- a/src/scr_cj.cpp
++++ b/src/scr_cj.cpp
+@@ -18,6 +18,13 @@
+ #include "../include/resource_ids.h"
+ #include <stdio.h>
+ #include <string.h>
++
++#ifdef __EMSCRIPTEN__
++// Browser port: the web lobby's room (platform/room_launch.cpp).
++int wasm_room_take(int* is_host, char* player, char* room, GUID* instance);
++void wasm_room_failed();
++extern "C" const GUID DPSPGUID_BROWSER;
++#endif
+ 
+ TribeJoinScreen::TribeJoinScreen() : TScreenPanel("Join Screen") {
+     this->startedSession = 0;
+@@ -128,6 +135,9 @@
+         comm->UnlinkToLevel(SERVICE_AVAILABLE);
+         this->waitingToStart = 0;
+         rge_base_game->enable_input();
++#ifdef __EMSCRIPTEN__
++        wasm_room_failed();
++#endif
+         TEasy_Panel::popupOKDialog(STRING_ID_MULTIPLAYER_UNABLE_TO_JOIN_GAME, 0, TEASY_POPUP_WIDTH, 100);
+         return 1;
+     }
+@@ -154,6 +164,9 @@
+                 comm->UnlinkToLevel(SERVICE_AVAILABLE);
+                 this->waitingToStart = 0;
+                 rge_base_game->enable_input();
++#ifdef __EMSCRIPTEN__
++                wasm_room_failed();
++#endif
+                 TEasy_Panel::popupOKDialog(STRING_ID_MULTIPLAYER_UNABLE_TO_JOIN_GAME, 0, TEASY_POPUP_WIDTH, 100);
+                 return 1;
+             }
+@@ -397,3 +410,58 @@
+ 
+     return TPanel::action(fromPanel, actionIn, a1, a2);
+ }
++
++#ifdef __EMSCRIPTEN__
++// Browser port: room launch. The steps of the MP Startup screen's OK (scr_mp.cpp) with the lobby's player
++// name and the Browser connection, then the Create dialog's OK or the Join button for the lobby's room. Runs
++// from the main menu's idle (scr_main.cpp), which returns at once: the main menu is destroyed here, as its
++// Multiplayer button does.
++void wasm_room_launch() {
++    int is_host;
++    char player[16];
++    char room[41];
++    GUID instance;
++    if (!wasm_room_take(&is_host, player, room, &instance))
++        return;
++    rge_base_game->setMultiplayerGame(1);
++    rge_base_game->disable_input();
++    comm->SetMyPlayerName(player);
++    comm->SetServiceGUID(DPSPGUID_BROWSER);
++    comm->InitJoinGame();
++    TribeJoinScreen* join = new TribeJoinScreen;
++    panel_system.setCurrentPanel("Join Screen", 0);
++    panel_system.destroyPanel("Main Menu");
++    if (is_host)
++        join->wasm_create(room);
++    else
++        join->wasm_join(&instance);
++}
++
++// TribeMPCreateDialog::action's OK, without the dialog: no status message, no closedpw.exe, and the game
++// name is the room's, not the registry's.
++void TribeJoinScreen::wasm_create(char* game_name) {
++    comm->SetGameTitle(game_name);
++    memset(&comm->PlayerStopTurn[1], 0, 9 * sizeof(comm->PlayerStopTurn[0]));
++    if (comm->CreateMultiplayerGame() != 0) {
++        new TribeMPSetupScreen;
++        panel_system.setCurrentPanel("MP Setup Screen", 0);
++        panel_system.destroyPanel("Join Screen"); // this screen: return at once
++        return;
++    }
++    rge_base_game->enable_input();
++    wasm_room_failed();
++}
++
++// The Join button for a session the list never showed: joining then waits for the host as the button
++// does (handle_idle, handle_user_command).
++void TribeJoinScreen::wasm_join(_GUID* session) {
++    if (comm->JoinMultiplayerGame(session) == 0) {
++        rge_base_game->enable_input();
++        wasm_room_failed();
++        return;
++    }
++    rge_base_game->disable_input();
++    this->waitingToStart = 1;
++    this->joinTime = debug_timeGetTime("C:\\msdev\\work\\age1_x1\\scr_cj.cpp", 320);
++}
++#endif
 --- a/src/scr_game.cpp
 +++ b/src/scr_game.cpp
 @@ -754,6 +754,83 @@
@@ -876,6 +977,24 @@
                  this->render_area->Unlock(s_scr_game_draw3);
              }
          }
+--- a/src/scr_main.cpp
++++ b/src/scr_main.cpp
+@@ -147,6 +147,15 @@
+ }
+ 
+ long TRIBE_Screen_Main_Menu::handle_idle() {
++#ifdef __EMSCRIPTEN__
++    // Browser port: a room from the web lobby starts here (scr_cj.cpp); it destroys this screen.
++    extern int wasm_room_pending();
++    extern void wasm_room_launch();
++    if (wasm_room_pending()) {
++        wasm_room_launch();
++        return 1;
++    }
++#endif
+     if (!rge_base_game->input_enabled)
+         rge_base_game->enable_input();
+     return TPanel::handle_idle();
 --- a/src/scr_mp.cpp
 +++ b/src/scr_mp.cpp
 @@ -5,7 +5,7 @@
@@ -1223,6 +1342,18 @@
      long get_scenario_checksum(char* scenario_file);
      unsigned char check_scenario_checksum(char* scenario, long checksum);
      void dump_memory_usage(char* file_name);
+--- a/include/com_hand.h
++++ b/include/com_hand.h
+@@ -190,6 +190,9 @@
+     friend class TRIBE_World;
+     friend class TCommunications_Sessions;
+     friend class TribeMPCreateDialog;
++#ifdef __EMSCRIPTEN__
++    friend class TribeJoinScreen; // the room launch's create (wasm_create, scr_cj.cpp)
++#endif
+     friend class TRIBE_Screen_Game;
+     friend int __stdcall EnumPlayersCallback2(unsigned long, unsigned long, DPNAME*, unsigned long, void*);
+ 
 --- a/include/com_obj.h
 +++ b/include/com_obj.h
 @@ -94,6 +94,7 @@
@@ -1313,6 +1444,30 @@
  
  class Path {
    public:
+--- a/include/scr_cj.h
++++ b/include/scr_cj.h
+@@ -43,10 +43,21 @@
+     virtual long handle_idle();
+     virtual long handle_user_command(unsigned int wParam, long lParam);
+     virtual long action(TPanel* fromPanel, long actionIn, unsigned long a1, unsigned long a2);
++#ifdef __EMSCRIPTEN__
++    // Browser port, room launch from the web lobby (wasm_room_launch): the Create dialog's OK and the Join
++    // button, for a given game name or session.
++    void wasm_create(char* game_name);
++    void wasm_join(_GUID* session);
++#endif
+ 
+   protected:
+     void fillList();
+ };
++
++#ifdef __EMSCRIPTEN__
++// Browser port: starts the room the web lobby passed (platform/room_launch.cpp) from the main menu.
++void wasm_room_launch();
++#endif
+ 
+ typedef char scr_cj_join_screen_size_check[(sizeof(TribeJoinScreen) == 0x4B0) ? 1 : -1];
+ 
 --- a/include/t_c_obj.h
 +++ b/include/t_c_obj.h
 @@ -75,6 +75,7 @@

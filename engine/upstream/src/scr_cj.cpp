@@ -19,6 +19,13 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifdef __EMSCRIPTEN__
+// Browser port: the web lobby's room (platform/room_launch.cpp).
+int wasm_room_take(int* is_host, char* player, char* room, GUID* instance);
+void wasm_room_failed();
+extern "C" const GUID DPSPGUID_BROWSER;
+#endif
+
 TribeJoinScreen::TribeJoinScreen() : TScreenPanel("Join Screen") {
     this->startedSession = 0;
     this->listFilled = 0;
@@ -128,6 +135,9 @@ long TribeJoinScreen::handle_idle() {
         comm->UnlinkToLevel(SERVICE_AVAILABLE);
         this->waitingToStart = 0;
         rge_base_game->enable_input();
+#ifdef __EMSCRIPTEN__
+        wasm_room_failed();
+#endif
         TEasy_Panel::popupOKDialog(STRING_ID_MULTIPLAYER_UNABLE_TO_JOIN_GAME, 0, TEASY_POPUP_WIDTH, 100);
         return 1;
     }
@@ -154,6 +164,9 @@ long TribeJoinScreen::handle_user_command(unsigned int wParam, long lParam) {
                 comm->UnlinkToLevel(SERVICE_AVAILABLE);
                 this->waitingToStart = 0;
                 rge_base_game->enable_input();
+#ifdef __EMSCRIPTEN__
+                wasm_room_failed();
+#endif
                 TEasy_Panel::popupOKDialog(STRING_ID_MULTIPLAYER_UNABLE_TO_JOIN_GAME, 0, TEASY_POPUP_WIDTH, 100);
                 return 1;
             }
@@ -397,3 +410,58 @@ long TribeMPCreateDialog::action(TPanel* fromPanel, long actionIn, unsigned long
 
     return TPanel::action(fromPanel, actionIn, a1, a2);
 }
+
+#ifdef __EMSCRIPTEN__
+// Browser port: room launch. The steps of the MP Startup screen's OK (scr_mp.cpp) with the lobby's player
+// name and the Browser connection, then the Create dialog's OK or the Join button for the lobby's room. Runs
+// from the main menu's idle (scr_main.cpp), which returns at once: the main menu is destroyed here, as its
+// Multiplayer button does.
+void wasm_room_launch() {
+    int is_host;
+    char player[16];
+    char room[41];
+    GUID instance;
+    if (!wasm_room_take(&is_host, player, room, &instance))
+        return;
+    rge_base_game->setMultiplayerGame(1);
+    rge_base_game->disable_input();
+    comm->SetMyPlayerName(player);
+    comm->SetServiceGUID(DPSPGUID_BROWSER);
+    comm->InitJoinGame();
+    TribeJoinScreen* join = new TribeJoinScreen;
+    panel_system.setCurrentPanel("Join Screen", 0);
+    panel_system.destroyPanel("Main Menu");
+    if (is_host)
+        join->wasm_create(room);
+    else
+        join->wasm_join(&instance);
+}
+
+// TribeMPCreateDialog::action's OK, without the dialog: no status message, no closedpw.exe, and the game
+// name is the room's, not the registry's.
+void TribeJoinScreen::wasm_create(char* game_name) {
+    comm->SetGameTitle(game_name);
+    memset(&comm->PlayerStopTurn[1], 0, 9 * sizeof(comm->PlayerStopTurn[0]));
+    if (comm->CreateMultiplayerGame() != 0) {
+        new TribeMPSetupScreen;
+        panel_system.setCurrentPanel("MP Setup Screen", 0);
+        panel_system.destroyPanel("Join Screen"); // this screen: return at once
+        return;
+    }
+    rge_base_game->enable_input();
+    wasm_room_failed();
+}
+
+// The Join button for a session the list never showed: joining then waits for the host as the button
+// does (handle_idle, handle_user_command).
+void TribeJoinScreen::wasm_join(_GUID* session) {
+    if (comm->JoinMultiplayerGame(session) == 0) {
+        rge_base_game->enable_input();
+        wasm_room_failed();
+        return;
+    }
+    rge_base_game->disable_input();
+    this->waitingToStart = 1;
+    this->joinTime = debug_timeGetTime("C:\\msdev\\work\\age1_x1\\scr_cj.cpp", 320);
+}
+#endif

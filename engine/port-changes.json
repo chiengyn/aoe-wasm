@@ -1,6 +1,6 @@
 {
   "reference_commit": "6d6d8b14023aa74e6ac30a6c88229d5b818fb805",
-  "changed_files": 52,
+  "changed_files": 56,
   "changes": [
     {
       "file": "upstream/src/Command.cpp",
@@ -25,7 +25,7 @@
     {
       "file": "upstream/src/Pnl_scr.cpp",
       "upstream_sha256": "8b891e3cdcb4806b05b24594cef65530a2c64459e768971122b9aad7b2cf2ca6",
-      "ported_sha256": "5c3fa4b6e844e087fda9c14ae4432a7678cb0598da78872924d2f1f6f35b44d5"
+      "ported_sha256": "76b5d200189ee478233c4a555460a544666174db537222bc3a1cee60647bdb7d"
     },
     {
       "file": "upstream/src/Res_file.cpp",
@@ -128,9 +128,19 @@
       "ported_sha256": "863770c71007ca953e569825d30eae6fa250fe64a00d0d9465af9a8f849cd3d5"
     },
     {
+      "file": "upstream/src/scr_cj.cpp",
+      "upstream_sha256": "baed637e1045ecbca106078eaaefb29e0dbfee299625b84325115991360abebc",
+      "ported_sha256": "d4ba877ca467197e7a556dd9e0b3b2de702723d14820062fecf665ed6b41a4e7"
+    },
+    {
       "file": "upstream/src/scr_game.cpp",
       "upstream_sha256": "39a60307f84155a16d035ddc100aca0e1c101a08b0889583558c14b41f7a9c53",
       "ported_sha256": "cc877e8e009fd8e156a23b520c476ad759613799fc3279f339cf97a0af7df830"
+    },
+    {
+      "file": "upstream/src/scr_main.cpp",
+      "upstream_sha256": "4660249cc9846f35a5fa50601898c3c29efa710eda72481b7794ddd40a1ef3b5",
+      "ported_sha256": "a54edab29fe902d05b5c912d7c22f81a86f9bb16a5fa4dde7eb468d709bb6403"
     },
     {
       "file": "upstream/src/scr_mp.cpp",
@@ -213,6 +223,11 @@
       "ported_sha256": "11fc7f50b0ca87b727606870647c4052c775e748797c5567b71c4ec54206ef1c"
     },
     {
+      "file": "upstream/include/com_hand.h",
+      "upstream_sha256": "2b14f938e38de4b9368c3ac66fb3f59f61b94f4e5c9e70c8844e2416757017ec",
+      "ported_sha256": "d84e91aaffec405d040021fbb3f99a7ef08283c48fc66826bfd5e89a63c2b52f"
+    },
+    {
       "file": "upstream/include/com_obj.h",
       "upstream_sha256": "b8c2267fb834e0962a189ce18cb8b174198d0f89fa89572912def8c895f69748",
       "ported_sha256": "bfa62719111de3d6757513efa500c1cb21b196c9a1c27441140e9bb3ba54c761"
@@ -246,6 +261,11 @@
       "file": "upstream/include/path.h",
       "upstream_sha256": "f2d0f297eed7de648dbb3aaf57ad829e9d8704897f0f8a4abb304ee304768efa",
       "ported_sha256": "05e9913d9be2800109ab6ad30cf13599533f0ea4f28af11a2d537826ff1d8e69"
+    },
+    {
+      "file": "upstream/include/scr_cj.h",
+      "upstream_sha256": "83cd0423688b8c8b7c3f4c78aefb9fb42d2ae089ffe64793081234615f47c558",
+      "ported_sha256": "d21267d661acdf969973ba7de616d392370ad0cdab586479cbfb92658aa9cb8b"
     },
     {
       "file": "upstream/include/t_c_obj.h",

@@ -54,6 +54,12 @@ void TScreenPanel::set_focus(int have_focus_in) {
     // Widescreen (browser port): the display takes the size of the screen being shown (the game screen widens).
     if (have_focus_in && rge_base_game != 0)
         rge_base_game->fit_screen(this, 0);
+#ifdef __EMSCRIPTEN__
+    // Browser port: the web lobby's room follows the screens shown (platform/room_launch.cpp).
+    extern void wasm_room_screen(const char*);
+    if (have_focus_in)
+        wasm_room_screen(this->panelName());
+#endif
 
     if (this->render_area && this->render_area->DrawSystem && have_focus_in && is_new) {
         TDrawSystem* system = this->render_area->DrawSystem;

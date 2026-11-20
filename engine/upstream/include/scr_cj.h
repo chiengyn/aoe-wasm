@@ -43,10 +43,21 @@ class TribeJoinScreen : public TScreenPanel {
     virtual long handle_idle();
     virtual long handle_user_command(unsigned int wParam, long lParam);
     virtual long action(TPanel* fromPanel, long actionIn, unsigned long a1, unsigned long a2);
+#ifdef __EMSCRIPTEN__
+    // Browser port, room launch from the web lobby (wasm_room_launch): the Create dialog's OK and the Join
+    // button, for a given game name or session.
+    void wasm_create(char* game_name);
+    void wasm_join(_GUID* session);
+#endif
 
   protected:
     void fillList();
 };
+
+#ifdef __EMSCRIPTEN__
+// Browser port: starts the room the web lobby passed (platform/room_launch.cpp) from the main menu.
+void wasm_room_launch();
+#endif
 
 typedef char scr_cj_join_screen_size_check[(sizeof(TribeJoinScreen) == 0x4B0) ? 1 : -1];
 

@@ -17,8 +17,12 @@
 #define DP_OK 0
 #define E_NOTIMPL_ ((HRESULT) 0x80004001)
 
-// The service provider GUID {6f9c7f1a-2b8e-4c3d-9a41-41454f450001} ("AOE" in the tail).
-static const GUID BROWSER_PROVIDER = {0x6f9c7f1a, 0x2b8e, 0x4c3d, {0x9a, 0x41, 0x41, 0x45, 0x4f, 0x45, 0x00, 0x01}};
+// The service provider GUID (guids.cpp).
+extern "C" const GUID DPSPGUID_BROWSER;
+#define BROWSER_PROVIDER DPSPGUID_BROWSER
+// The web lobby's room (room_launch.cpp): its password goes with Open, and Open's result explains a failure.
+const char* wasm_room_password();
+void wasm_room_open_result(HRESULT result);
 static const char* const BROWSER_PROVIDER_NAME = "Browser Connection For DirectPlay";
 
 // ---------------------------------------------------------------- wire format (see server/relay/protocol.go)
@@ -504,12 +508,15 @@ HRESULT DpV3::Open(LPDPSESSIONDESC2 desc, DWORD flags) {
     if (dp.in_session) return DPERR_ALREADYINITIALIZED;
     Writer w((flags & DPOPEN_CREATE) ? OP_CREATE : OP_JOIN);
     DWORD id = new_request(w);
-    if (flags & DPOPEN_CREATE) write_desc(w, from_desc(desc));
-    else { w.bytes(&desc->guidInstance, 16); w.str(desc->lpszPasswordA); }
+    // A room from the web lobby brings its password; the game's own dialogs never set one.
+    const char* password = desc->lpszPasswordA && *desc->lpszPasswordA ? desc->lpszPasswordA : wasm_room_password();
+    if (flags & DPOPEN_CREATE) { SessionInfo s = from_desc(desc); s.password = password ? password : ""; write_desc(w, s); }
+    else { w.bytes(&desc->guidInstance, 16); w.str(password); }
     std::vector<BYTE> reply;
-    if (!request(w, id, &reply)) return DPERR_NOCONNECTION;
+    if (!request(w, id, &reply)) { wasm_room_open_result(DPERR_NOCONNECTION); return DPERR_NOCONNECTION; }
     Reader r(&reply[0] + 5, reply.size() - 5);
     HRESULT result = (HRESULT) r.u32();
+    wasm_room_open_result(result);
     if (result != DP_OK) return result;
     dp.session = read_desc(r);
     dp.players.clear();

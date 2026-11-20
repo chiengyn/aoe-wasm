@@ -54,12 +54,18 @@ type Session struct {
 	players     []*player // creation order
 }
 
+// record writes the session description as clients see it: without the password, with
+// SessionPasswordRequired set when there is one.
 func (s *Session) record(w writer) writer {
-	w = w.bytes(s.instance[:]).bytes(s.application[:]).u32(s.flags).u32(s.maxPlayers).u32(uint32(len(s.players)))
+	flags := s.flags &^ SessionPasswordRequired
+	if len(s.password) > 0 {
+		flags |= SessionPasswordRequired
+	}
+	w = w.bytes(s.instance[:]).bytes(s.application[:]).u32(flags).u32(s.maxPlayers).u32(uint32(len(s.players)))
 	for _, v := range s.user {
 		w = w.u32(v)
 	}
-	return w.str(s.name).str(s.password)
+	return w.str(s.name).str(nil)
 }
 
 func (s *Session) acceptsPlayers() bool {
@@ -341,7 +347,9 @@ func (r *Relay) inSession(c *Client, s *Session, op byte, rd *reader) error {
 			if rd.err != nil {
 				return rd.err
 			}
-			s.flags, s.maxPlayers, s.user, s.name, s.password = d.flags, clampPlayers(d.maxPlayers), d.user, d.name, d.password
+			// The password is fixed when the session is created: the host only ever saw it blank (record), so
+			// the description it sends back would otherwise clear it.
+			s.flags, s.maxPlayers, s.user, s.name = d.flags, clampPlayers(d.maxPlayers), d.user, d.name
 			s.others(c, append(s.record(newFrame(OpDesc)), 1))
 		}
 	case OpEnableNew:

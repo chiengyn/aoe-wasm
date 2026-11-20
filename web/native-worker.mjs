@@ -5,6 +5,7 @@ import {canvasFonts} from './aoe-fonts.mjs';
 import {openStorage, loadFiles, FileSaver} from './native-storage.mjs';
 import {attachDirectPlay} from './native-dplay.mjs';
 import {attachMedia} from './native-media.mjs';
+import {setRoom} from './native-room.mjs';
 
 const json = async url => { const r = await fetch(url); if (!r.ok) throw new Error('Cannot load ' + url); return r.json(); };
 const bytes = async url => { const r = await fetch(url); if (!r.ok) throw new Error('Cannot load ' + url); return new Uint8Array(await r.arrayBuffer()); };
@@ -13,7 +14,8 @@ const send = (type, data = {}) => postMessage({type, ...data});
 let dataDir = 'game';
 let ended = false, game = null, canvas = null, ctx = null, image = null, saver = null;
 let aspect = [0, 0];
-// The page's start click (a user gesture lets the browser play sound from the first intro frame).
+// The page's start click (a user gesture lets the browser play sound from the first intro frame), with the
+// lobby's room if there is one (index.html; native-room.mjs).
 let go;
 const started = new Promise(resolve => { go = resolve; });
 const end = (kind, data) => { if (!ended) { ended = true; send('end', {kind, ...data}); } };
@@ -65,7 +67,11 @@ async function start(commandLine) {
   saver = new FileSaver(db, game.FS);
   setInterval(() => saver.save().catch(() => {}), 3000);
   send('ready');
-  await started;
+  const room = await started;
+  if (room) {
+    try { setRoom(game, room, (event, code) => send('room', {event, code})); }
+    catch (error) { send('room', {event: 'failed', code: 0, reason: String(error?.message || error)}); return; }
+  }
   send('status', {text: db ? 'Running' : 'Running (browser storage unavailable: profiles and saves are not kept)'});
   try { game.callMain(commandLine.split(/\s+/).filter(Boolean)); } catch (error) { if (!/unwind/i.test(String(error))) end('abort', {reason: String(error)}); }
 }
@@ -80,7 +86,7 @@ self.onmessage = ({data}) => {
     canvas = data.canvas;
     ctx = canvas.getContext('2d', {alpha: false});
     start(data.commandLine).catch(error => end('abort', {reason: String(error && error.message || error)}));
-  } else if (data.type === 'go') go();
+  } else if (data.type === 'go') go(data.room || null);
   // Widescreen: the shape of the page's space for the game (0 width: always 4:3). Kept until the game exists.
   else if (data.type === 'aspect') { aspect = [data.width | 0, data.height | 0]; game?._aoe_set_display_aspect(...aspect); }
   else if (game && !ended) {

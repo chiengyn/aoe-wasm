@@ -75,6 +75,16 @@ export class MediaHost {
     if (f) f.call(this, m);
   }
 
+  // Stops everything the game started, for the next game on the same page (the lobby's next room). The
+  // audio context and the synth stay.
+  reset() {
+    for (const id of [...this.voices.keys()]) this.soundStop({id});
+    this.buffers.clear();
+    this.midi = null;
+    this.synth?.stop();
+    this.videoClose();
+  }
+
   // ---- DirectSound
   soundData({id, data, rate, channels, bits}) { this.buffers.set(id, {pcm: data, rate, channels, bits, audio: null}); }
   soundDuplicate({id, source}) { const b = this.buffers.get(source); if (b) this.buffers.set(id, b); }

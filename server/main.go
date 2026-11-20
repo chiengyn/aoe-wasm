@@ -1,5 +1,6 @@
 // Command aoe-server serves the browser game (web/) and relays DirectPlay traffic between the players of
-// each match over a WebSocket at /api/dplay (see the relay package).
+// each match over a WebSocket at /api/dplay (see the relay package). The web lobby lists the matches as
+// rooms (GET /api/rooms) and checks room passwords (POST /api/rooms/check).
 //
 //	aoe-server [-host 127.0.0.1] [-port 8788] [-web web]
 //	aoe-server healthcheck [-port 8788]
@@ -131,6 +132,7 @@ type handler struct {
 	files       http.Handler
 	relay       *relay.Relay
 	logRequests bool
+	checks      limiter // POST /api/rooms/check, per address
 
 	connections                   atomic.Int64
 	framesIn, framesOut, overflow atomic.Uint64
@@ -153,6 +155,12 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
 	case "/api/dplay":
 		h.dplay(w, r)
+		return
+	case "/api/rooms":
+		h.rooms(w, r)
+		return
+	case "/api/rooms/check":
+		h.roomCheck(w, r)
 		return
 	case "/healthz":
 		w.Header().Set("Content-Type", "application/json")

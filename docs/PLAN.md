@@ -327,6 +327,28 @@ feature then runs through the game's own code.
     positions; `test_native_boot.mjs` checks the 1024x768 default.
     The in-game Options dialog saves its size choice to the registry when OK is clicked (`dlg_conf.cpp`);
     the game otherwise writes it only in `~RGE_Base_Game`, which closing the tab never reaches.
+  - Room lobby (2026-11-20). Not in the retail game. `index.html` is a web lobby for strangers: a name
+    (localStorage), then create a room (name, optional password) or browse/search the rooms and join one.
+    `native.html` stays as the debugging page with the game's own menus.
+    - A room is a relay session. The game starts straight in it, like a Gaming Zone lobby launch, but not
+      through `RGE_Lobby`: `TCommunications_Handler::LaunchLobbyGame` is never called in this beta.
+      Instead the page passes the room before `WinMain` (`aoe_room_set`, `platform/room_launch.cpp`), and
+      the main menu's `handle_idle` runs `wasm_room_launch` (`scr_cj.cpp`). That is the MP Startup OK steps
+      (`scr_mp.cpp`) with the lobby's name and the Browser provider, then the Create dialog's OK
+      (`TribeJoinScreen::wasm_create`) or the Join button for the room's session (`wasm_join`). The Join
+      screen's existing waiting, timeout and failure handling stay in use.
+    - The room's password goes with DirectPlay `Open` (`win32_dplay.cpp`), because the game's dialogs never
+      set one. The page hears `setup` (the MP Setup Screen is shown), `failed` (with the `Open` result)
+      and `left` (a menu screen after the room), from `TScreenPanel::set_focus`.
+    - The relay no longer sends passwords. Session records carry an empty password and
+      `DPSESSION_PASSWORDREQUIRED` (0x400). The password is fixed at create: the host's `OpSetDesc` echo
+      only ever saw it blank. Before this, every session list carried every password in clear text.
+    - Server: `GET /api/rooms` (session names split from the game's "<name> [<host>]" title) and `POST
+      /api/rooms/check` (20 checks a minute per address). The relay checks the password again on join.
+    - The page side of the game moved from `native.html` into `game-host.mjs`, which both pages use. A host
+      is one run of the game; the lobby destroys it on leaving a room and loads the next one.
+    - `test_native_rooms.mjs`: create a locked room, a wrong password, the right one, a public room,
+      leaving, the lobby API, and no password in any relay frame.
   - Tests:
     - `test_native_multiplayer.mjs`: the host's page is 16:9 (lobby 800x600, game screen 1064x600), the
       guest's 4:3; the lockstep checks pass with the two view sizes.

@@ -113,7 +113,7 @@ def copy_to_web(output, link, name):
 # browser through Asyncify (platform/win32_loop.cpp). Unported Windows calls still abort with their name.
 GAME_LOCAL = ['platform/win32_loop.cpp', 'platform/port_glue.cpp', 'platform/runtime.cpp', 'platform/guids.cpp',
               'platform/software_draw.cpp', 'platform/win32_common.cpp', 'platform/win32_kernel.cpp',
-              'platform/win32_user.cpp', 'platform/win32_gdi.cpp', 'platform/win32_ddraw.cpp', 'platform/win32_inflate.cpp', 'platform/win32_media.cpp', 'platform/win32_dplay.cpp', 'platform/win32_testhooks.cpp']
+              'platform/win32_user.cpp', 'platform/win32_gdi.cpp', 'platform/win32_ddraw.cpp', 'platform/win32_inflate.cpp', 'platform/win32_media.cpp', 'platform/win32_dplay.cpp', 'platform/win32_testhooks.cpp', 'platform/room_launch.cpp']
 def link_game(common, units, web):
     output = BUILD / 'game.mjs'
     for extension in ['.mjs', '.wasm']: output.with_suffix(extension).unlink(missing_ok=True)
@@ -154,7 +154,7 @@ def link_game(common, units, web):
 def link_probe(common, units):
     output = BUILD / 'core-probe.mjs'
     for extension in ['.mjs', '.wasm']: output.with_suffix(extension).unlink(missing_ok=True)
-    local = ['diagnostics/core_probe.cpp', 'diagnostics/menu_probe.cpp', 'diagnostics/game_ui.cpp', 'diagnostics/host.cpp', 'platform/win32_loop.cpp', 'platform/port_glue.cpp', 'platform/win32_common.cpp', 'platform/runtime.cpp', 'platform/guids.cpp', 'platform/menu_host.cpp', 'platform/software_draw.cpp']
+    local = ['diagnostics/core_probe.cpp', 'diagnostics/menu_probe.cpp', 'diagnostics/game_ui.cpp', 'diagnostics/host.cpp', 'platform/win32_loop.cpp', 'platform/port_glue.cpp', 'platform/win32_common.cpp', 'platform/runtime.cpp', 'platform/guids.cpp', 'platform/menu_host.cpp', 'platform/software_draw.cpp', 'platform/room_launch.cpp']
     objects = [BUILD / Path(unit['source']).with_suffix('.o') for unit in units]
     command = [*common, *[str(ROOT / p) for p in local], *map(str, objects), '--no-entry',
                '-sMODULARIZE=1', '-sEXPORT_ES6=1', '-sALLOW_MEMORY_GROWTH=1', '-sINITIAL_MEMORY=67108864',

@@ -266,6 +266,126 @@ func TestPasswordAndAlreadyInitialized(t *testing.T) {
 	}
 }
 
+// The password never leaves the relay: lists, open replies and description updates carry an empty one
+// and SessionPasswordRequired; the host's description echo (which only ever saw it blank) keeps it.
+func TestPasswordIsNeverSent(t *testing.T) {
+	r, host, guest, viewer := New(), newConn(), newConn(), newConn()
+	instance := create(t, r, host, "Locked", 0, 8, "secret")
+	addPlayer(t, r, host, "Host")
+	hidden := func(what string, f []byte, desc int) {
+		t.Helper()
+		if bytes.Contains(f, []byte("secret")) {
+			t.Fatalf("%s carries the password: % x", what, f)
+		}
+		if u32(f, desc+32)&SessionPasswordRequired == 0 {
+			t.Fatalf("%s: SessionPasswordRequired not set (flags %#x)", what, u32(f, desc+32))
+		}
+	}
+	_, list := enum(t, r, viewer, app, 0)
+	hidden("enum reply", list, 9)
+	res, open := join(t, r, guest, instance, "secret")
+	if res != DPOK {
+		t.Fatalf("join: %#x", res)
+	}
+	hidden("open reply", open, 9)
+	mustHandle(t, r, host, newFrame(OpSetDesc).bytes(descFrame("Locked", 0x44, 8, "")))
+	hidden("description", guest.last(t), 1)
+	mustHandle(t, r, host, newFrame(OpEnableNew).u32(1))
+	hidden("enable new", guest.last(t), 1)
+	if res, _ := join(t, r, viewer, instance, ""); res != DPErrInvalidPassword {
+		t.Fatalf("the host's description echo cleared the password: %#x", res)
+	}
+
+	public := create(t, r, newConn(), "Open", 0, 8, "")
+	_, list = enum(t, r, viewer, app, 0)
+	at := bytes.Index(list, public)
+	if at < 0 || u32(list, at+32)&SessionPasswordRequired != 0 {
+		t.Fatalf("public session marked as locked: % x", list)
+	}
+}
+
+func TestRoomsAndCheckRoom(t *testing.T) {
+	r, host, guest := New(), newConn(), newConn()
+	if rooms := r.Rooms(); len(rooms) != 0 {
+		t.Fatalf("empty relay lists %v", rooms)
+	}
+	// Names are Windows-1252: 0xE9 is é, 0x80 is €.
+	locked := create(t, r, host, "Caf\xe9 \x80", 0, 2, "s\xe9same")
+	addPlayer(t, r, host, "Livia")
+	public := create(t, r, newConn(), "Open", 0, 8, "")
+	rooms := r.Rooms()
+	want := []Room{
+		{ID: fmt.Sprintf("%x", locked), Name: "Café €", Host: "Livia", Players: 1, MaxPlayers: 2, Locked: true, Open: true},
+		{ID: fmt.Sprintf("%x", public), Name: "Open", Players: 0, MaxPlayers: 8, Open: true},
+	}
+	if fmt.Sprint(rooms) != fmt.Sprint(want) {
+		t.Fatalf("rooms\n got %+v\nwant %+v", rooms, want)
+	}
+
+	id := rooms[0].ID
+	for _, c := range []struct {
+		id, password string
+		want         RoomCheck
+	}{
+		{id, "sésame", RoomOK},
+		{id, "sesame", RoomWrongPassword},
+		{id, "", RoomWrongPassword},
+		{id, "s\u4e00", RoomWrongPassword}, // no Windows-1252 byte
+		{rooms[1].ID, "anything", RoomOK},  // public: the password is ignored
+		{"00", "", RoomGone},
+		{"zz", "", RoomGone},
+		{fmt.Sprintf("%032x", 1), "", RoomGone},
+	} {
+		if got := r.CheckRoom(c.id, c.password); got != c.want {
+			t.Errorf("CheckRoom(%q, %q) = %s, want %s", c.id, c.password, got, c.want)
+		}
+	}
+	join(t, r, guest, locked, "s\xe9same")
+	addPlayer(t, r, guest, "Titus")
+	if got := r.CheckRoom(id, "sésame"); got != RoomClosed {
+		t.Fatalf("full room: %s", got)
+	}
+	if rooms := r.Rooms(); rooms[0].Open || rooms[0].Players != 2 {
+		t.Fatalf("full room listed as %+v", rooms[0])
+	}
+	r.Disconnect(host.Client)
+	if got := r.CheckRoom(id, "sésame"); got != RoomGone {
+		t.Fatalf("room after the host left: %s", got)
+	}
+}
+
+func TestSplitTitle(t *testing.T) {
+	for title, want := range map[string][2]string{
+		"Forum [Livia]": {"Forum", "Livia"},
+		"A [b] [Livia]": {"A [b]", "Livia"},
+		"Plain":         {"Plain", ""},
+		"[Livia]":       {"[Livia]", ""},
+		"Odd [unclosed": {"Odd [unclosed", ""},
+		"Empty host []": {"Empty host", ""},
+	} {
+		if name, host := splitTitle(title); [2]string{name, host} != want {
+			t.Errorf("splitTitle(%q) = %q, %q; want %q", title, name, host, want)
+		}
+	}
+}
+
+func TestCP1252(t *testing.T) {
+	all := make([]byte, 256)
+	for i := range all {
+		all[i] = byte(i)
+	}
+	for _, c := range []byte{0x81, 0x8D, 0x8F, 0x90, 0x9D} {
+		all[c] = '?' // undefined in Windows-1252
+	}
+	back, ok := EncodeCP1252(DecodeCP1252(all))
+	if !ok || !bytes.Equal(back, all) {
+		t.Fatalf("round trip: %v % x", ok, back)
+	}
+	if _, ok := EncodeCP1252("日本"); ok {
+		t.Fatal("encoded characters outside Windows-1252")
+	}
+}
+
 func TestPlayerLimitsAndOutsideSession(t *testing.T) {
 	r, c := New(), newConn()
 	mustHandle(t, r, c, newFrame(OpCreatePlayer).u32(5).u32(0).str(nil).str(nil).blob(nil))

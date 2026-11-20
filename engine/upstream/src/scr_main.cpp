@@ -147,6 +147,15 @@ TRIBE_Screen_Main_Menu::~TRIBE_Screen_Main_Menu() {
 }
 
 long TRIBE_Screen_Main_Menu::handle_idle() {
+#ifdef __EMSCRIPTEN__
+    // Browser port: a room from the web lobby starts here (scr_cj.cpp); it destroys this screen.
+    extern int wasm_room_pending();
+    extern void wasm_room_launch();
+    if (wasm_room_pending()) {
+        wasm_room_launch();
+        return 1;
+    }
+#endif
     if (!rge_base_game->input_enabled)
         rge_base_game->enable_input();
     return TPanel::handle_idle();

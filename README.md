@@ -45,7 +45,7 @@ python3 engine/build.py --sdk /path/to/emsdk --jobs 8 --game --release --web
 # 2. Copy your game folder into web/game/ (read only; converts videos and help)
 python3 tools/prepare_native.py '/path/to/Age of Empires'
 
-# 3. Optional: download the MIDI synthesizer and soundfont (hash-checked) for music
+# 3. Optional: download the MIDI synthesizer, soundfont and the lobby's fonts (hash-checked)
 python3 tools/fetch_vendor.py
 
 # 4. Build the server, run it from the repository root, and open http://127.0.0.1:8788/
@@ -87,14 +87,25 @@ game, so keep the server private (LAN, VPN, or behind authentication on the prox
 
 ### Playing multiplayer
 
-1. Open `http://127.0.0.1:8788/` in two **separate browser windows**. Chrome throttles background tabs, so
-   two tabs in one window don't work well.
-2. In each window choose **Multiplayer**, enter a name, choose **Browser Connection For DirectPlay**, and
-   press **OK**.
-3. One player presses **Create**. The other presses **Show Games** and then **Join**.
-4. Both players press **I'm Ready!**, and the host presses **Start Game**.
+`http://127.0.0.1:8788/` is the room lobby:
 
-### Page options
+1. Pick a name. The lobby keeps it in the browser (localStorage), and other players see you by it.
+2. **Create a room**: give it a name, and a password if only invited players should join. Without a
+   password, anyone can join.
+3. Or **Join a room**: browse or search the rooms (by room or host name) and press **Join**. A locked room
+   asks for its password first. **Copy invite link** in a room gives a link that opens the lobby on it.
+4. The game opens straight on the room's game setup screen. Players press **I'm Ready!**, and the host
+   presses **Start Game**. **Leave room**, or the game's **Cancel**, goes back to the lobby.
+
+Each player needs their own browser window. Chrome throttles background tabs, so two tabs in one window
+don't work well.
+
+### Debugging page
+
+`native.html` is the game on its own, with its engine log and the options below. It goes through the game's
+own menus: **Multiplayer**, a name, **Browser Connection For DirectPlay**, then **Create**, or **Show
+Games** and **Join**. It lists every room on the server, but can't join a locked one (the game's own
+screens never ask for a password).
 
 | URL parameter | Effect |
 |---|---|
@@ -115,7 +126,12 @@ wait on each other.
 | `-web` | Folder to serve (default `web`, relative to the working directory) |
 | `-log-requests` | Log every file request |
 | `/healthz` | JSON: sessions, players, connections, relayed frames, dropped clients |
+| `/api/rooms` | JSON: the rooms (sessions) for the lobby: name, host, players, locked, open |
+| `/api/rooms/check` | POST `{id, password}`: whether a player could join now. Limited to 20 checks a minute per address |
 | `aoe-server healthcheck` | Exits 0 when the local server answers `/healthz` (used by the Docker image) |
+
+Room passwords stay on the server. Session lists and descriptions carry only a "password required" flag,
+and the relay checks the password when a player joins.
 
 A client that stops reading is disconnected once 32 MiB are queued for it, so one stalled browser can't
 hold up its match. WebSocket pings every 30 s keep idle lobbies open through proxies.
@@ -145,10 +161,13 @@ engine/              The game engine compiled to WASM
   diagnostics/       Headless "probe" entry points used by the Node tests, plus the list of Windows APIs
                      that are still unported
   build.py           Compiles upstream + platform with Emscripten; links game and/or probe
-web/                 The page: native.html (canvas, input, help overlay), native-worker.mjs (runs the game
-                     in a Web Worker), native-media/-midi/-dplay/-storage.mjs (audio, music, network,
-                     IndexedDB saves), aoe-fonts.mjs (canvas fonts standing in for Windows fonts)
-server/              Go server: main.go (static files, /api/dplay WebSocket, /healthz), relay/ (DirectPlay
+web/                 The pages: index.html + lobby.mjs/.css (room lobby), native.html (debugging page).
+                     game-host.mjs (canvas, input, help overlay), native-worker.mjs (runs the game in a
+                     Web Worker), native-room.mjs (room launch), native-media/-midi/-dplay/-storage.mjs
+                     (audio, music, network, IndexedDB saves), aoe-fonts.mjs (canvas fonts standing in
+                     for Windows fonts), cp1252.mjs (the game's code page)
+server/              Go server: main.go (static files, /api/dplay WebSocket, /healthz), rooms.go (lobby
+                     API), relay/ (DirectPlay
                      sessions and routing), loadtest/ (many simulated matches against a running server)
 tools/               Python tools: prepare_native.py (game data), convert_help.py (WinHelp to HTML),
                      fetch_vendor.py, prepare_test_data.py (test data), verify_*.py / compare_versions.py
@@ -189,6 +208,7 @@ node tests/test_native_menu.mjs
 node tests/test_native_media.mjs
 node tests/test_native_scenarios.mjs
 AOE_PLAYERS=4 node tests/test_native_multiplayer.mjs    # AOE_PLAYERS=2..8, AOE_PLAY_SECONDS, AOE_DATA
+node tests/test_native_rooms.mjs                        # room launch, passwords, lobby API
 python3 tests/test_help_convert.py
 python3 tests/test_web_static.py --built
 

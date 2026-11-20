@@ -190,6 +190,9 @@ class TCommunications_Handler {
     friend class TRIBE_World;
     friend class TCommunications_Sessions;
     friend class TribeMPCreateDialog;
+#ifdef __EMSCRIPTEN__
+    friend class TribeJoinScreen; // the room launch's create (wasm_create, scr_cj.cpp)
+#endif
     friend class TRIBE_Screen_Game;
     friend int __stdcall EnumPlayersCallback2(unsigned long, unsigned long, DPNAME*, unsigned long, void*);
 

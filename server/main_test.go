@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -262,5 +263,105 @@ func TestOutbox(t *testing.T) {
 	o.close()
 	if o.push([]byte("x")) || o.overflowed() {
 		t.Fatal("closed outbox accepted a frame or reported overflow")
+	}
+}
+
+func TestRoomsAPI(t *testing.T) {
+	srv := testServer(t)
+	host := dial(t, srv)
+	locked := append(fb(make([]byte, 16)), testApp...).u32(0x44).u32(8).u32(0).u32(0).u32(0).u32(0).u32(0).str("Forum").str("pw")
+	host.send(append(fb{relay.OpCreate}.u32(1), locked...))
+	instance := host.recv()[9:25]
+	host.send(fb{relay.OpCreatePlayer}.u32(2).u32(0).str("Livia").str("").blob(nil))
+	host.recv()
+
+	resp, err := http.Get(srv.URL + "/api/rooms")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var list struct{ Rooms []relay.Room }
+	if err := json.NewDecoder(resp.Body).Decode(&list); err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	id := hex.EncodeToString(instance)
+	want := relay.Room{ID: id, Name: "Forum", Host: "Livia", Players: 1, MaxPlayers: 8, Locked: true, Open: true}
+	if resp.Header.Get("Cache-Control") != "no-store" || len(list.Rooms) != 1 || list.Rooms[0] != want {
+		t.Fatalf("rooms %+v (%s)", list.Rooms, resp.Header.Get("Cache-Control"))
+	}
+	if resp, _ := http.Post(srv.URL+"/api/rooms", "application/json", nil); resp.StatusCode != http.StatusMethodNotAllowed {
+		t.Errorf("POST /api/rooms: %d", resp.StatusCode)
+	}
+
+	check := func(origin, body string) (int, string) {
+		t.Helper()
+		req, _ := http.NewRequest("POST", srv.URL+"/api/rooms/check", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		if origin != "" {
+			req.Header.Set("Origin", origin)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		var out struct{ Result string }
+		json.NewDecoder(resp.Body).Decode(&out)
+		return resp.StatusCode, out.Result
+	}
+	self := srv.URL
+	for _, c := range []struct {
+		origin, body string
+		code         int
+		result       string
+	}{
+		{self, `{"id":"` + id + `","password":"pw"}`, 200, "ok"},
+		{self, `{"id":"` + id + `","password":"no"}`, 200, "wrong-password"},
+		{"", `{"id":"` + id + `"}`, 200, "wrong-password"},
+		{self, `{"id":"00"}`, 200, "gone"},
+		{"https://evil.example", `{"id":"` + id + `","password":"pw"}`, 403, ""},
+		{self, `not json`, 400, ""},
+		{self, `{"id":"` + strings.Repeat("a", 2000) + `"}`, 400, ""},
+	} {
+		if code, result := check(c.origin, c.body); code != c.code || result != c.result {
+			t.Errorf("check %.40s from %q: %d %q, want %d %q", c.body, c.origin, code, result, c.code, c.result)
+		}
+	}
+	if resp, _ := http.Get(srv.URL + "/api/rooms/check"); resp.StatusCode != http.StatusMethodNotAllowed {
+		t.Errorf("GET /api/rooms/check: %d", resp.StatusCode)
+	}
+	// Guessing is limited per address: the burst (minus the checks above) then 429.
+	limited := false
+	for range checkBurst {
+		if code, result := check(self, `{"id":"`+id+`","password":"guess"}`); code == http.StatusTooManyRequests && result == "slow-down" {
+			limited = true
+			break
+		}
+	}
+	if !limited {
+		t.Fatal("password checks are not rate limited")
+	}
+}
+
+func TestLimiter(t *testing.T) {
+	var l limiter
+	now := time.Unix(1000, 0)
+	for i := range checkBurst {
+		if !l.allow("a", now) {
+			t.Fatalf("check %d refused within the burst", i)
+		}
+	}
+	if l.allow("a", now) {
+		t.Fatal("check over the burst allowed")
+	}
+	if !l.allow("b", now) {
+		t.Fatal("another address shares the bucket")
+	}
+	if !l.allow("a", now.Add(checkRefill)) || l.allow("a", now.Add(checkRefill)) {
+		t.Fatal("refill is not one check per interval")
+	}
+	l.allow("c", now.Add(checkIdle+time.Minute))
+	if _, kept := l.buckets["b"]; kept {
+		t.Fatal("idle entries are not forgotten")
 	}
 }
