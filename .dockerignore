@@ -16,3 +16,6 @@ formats/
 node_modules/
 # Local toolchain (emsdk etc.); the image uses emscripten/emsdk instead
 toolchain/
+# CI and local Claude Code files
+.github/
+.claude/

@@ -1,0 +1,153 @@
+# Checks every push and pull request, then publishes the two Docker images to the GitHub Container
+# Registry (ghcr.io/<owner>/aoe-wasm and ghcr.io/<owner>/aoe-wasm-prepare) from main and from v* tags.
+# Pull requests build the images but never push them. The images hold no game data (see Dockerfile).
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  server:
+    name: Go server
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version: '1.27.3' # the version the Dockerfile builds with
+          cache-dependency-path: server/go.sum
+      - name: Check formatting
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then echo "Run gofmt -w on:"; echo "$unformatted"; exit 1; fi
+      - run: go vet ./...
+      - run: go test -race ./...
+      - run: go build ./...
+
+  web:
+    name: Web page (static checks)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.14'
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      # Links, DOM IDs, module parsing and imports. The engine build is checked by the image job.
+      - run: python3 tests/test_web_static.py
+
+  engine-patch:
+    name: Upstream changes are recorded
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Applies engine/port.patch to the pinned aoe1-decomp commit and requires the result to equal
+      # engine/upstream. Fails when engine/upstream was changed without regenerating the patch.
+      - name: Apply port.patch to the pristine source
+        run: |
+          read -r repository commit < <(python3 -c 'import json; s = json.load(open("engine/upstream/SOURCE.json")); print(s["repository"], s["commit"])')
+          git init -q "$RUNNER_TEMP/reference"
+          git -C "$RUNNER_TEMP/reference" fetch -q --depth 1 "$repository" "$commit"
+          git -C "$RUNNER_TEMP/reference" checkout -q FETCH_HEAD
+          mkdir "$RUNNER_TEMP/patched"
+          cp -r "$RUNNER_TEMP/reference"/{src,include,third_party} "$RUNNER_TEMP/patched/"
+          (cd "$RUNNER_TEMP/patched" && patch -s -p1 --no-backup-if-mismatch < "$GITHUB_WORKSPACE/engine/port.patch")
+          for dir in src include third_party; do
+            diff -r "$RUNNER_TEMP/patched/$dir" "engine/upstream/$dir"
+          done
+
+  image:
+    name: Image (${{ matrix.image }})
+    needs: [server, web, engine-patch]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: aoe-wasm
+            target: server
+          - image: aoe-wasm-prepare
+            target: prepare
+    env:
+      PUSH: ${{ github.event_name != 'pull_request' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Log in to ghcr.io
+        if: env.PUSH == 'true'
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Image tags and labels
+        id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
+          # main -> latest; v1.2.3 -> 1.2.3 and 1.2; every push -> sha-<short>
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+            type=ref,event=pr
+          labels: |
+            org.opencontainers.image.title=${{ matrix.image }}
+            org.opencontainers.image.description=${{ matrix.target == 'server' && 'Age of Empires: The Rise of Rome in the browser: Go server, page and WASM engine (no game data)' || 'Prepares your own Age of Empires folder into the aoe-wasm data volume' }}
+
+      # The server image is started once before it is pushed: it must answer its health check, the
+      # lobby page and the rooms API.
+      - name: Build for the smoke test
+        if: matrix.target == 'server'
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          target: ${{ matrix.target }}
+          load: true
+          tags: aoe-wasm:ci
+          cache-from: type=gha,scope=${{ matrix.target }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.target }}
+      - name: Smoke test
+        if: matrix.target == 'server'
+        run: |
+          docker run -d --name aoe -p 8788:8788 aoe-wasm:ci
+          for _ in $(seq 30); do curl -fsS http://127.0.0.1:8788/healthz && break; sleep 1; done
+          curl -fsS http://127.0.0.1:8788/healthz
+          curl -fsS http://127.0.0.1:8788/ | grep -q 'lobby.mjs'
+          curl -fsS http://127.0.0.1:8788/api/rooms | grep -q '"rooms"'
+          curl -fsSI http://127.0.0.1:8788/engine/game.wasm
+          curl -fsSI http://127.0.0.1:8788/vendor/fonts/cinzel/cinzel-latin-700-normal.woff2
+      - name: Smoke test logs
+        if: always() && matrix.target == 'server'
+        run: docker logs aoe || true
+
+      - name: Build and push
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          target: ${{ matrix.target }}
+          push: ${{ env.PUSH == 'true' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.target }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.target }}

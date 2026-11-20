@@ -67,6 +67,10 @@ The Dockerfile builds two images. **Neither contains game data.**
   `/game`, into the `aoe-data` volume. When the volume is already prepared, it does nothing; `--force`
   prepares again.
 
+CI (`.github/workflows/ci.yml`) publishes both images to the GitHub Container Registry from `main`
+(`latest`) and from `v*` tags (`1.2.3`, `1.2`): `ghcr.io/chiengyn/aoe-wasm` and
+`ghcr.io/chiengyn/aoe-wasm-prepare`. Use them in place of the local tags below, or build them yourself:
+
 ```sh
 docker build -t aoe-wasm .                    # --build-arg MUSIC=0 leaves out the MIDI synth and soundfont
 docker build --target prepare -t aoe-wasm-prepare .
