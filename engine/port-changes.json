@@ -1,6 +1,6 @@
 {
   "reference_commit": "6d6d8b14023aa74e6ac30a6c88229d5b818fb805",
-  "changed_files": 46,
+  "changed_files": 51,
   "changes": [
     {
       "file": "upstream/src/Command.cpp",
@@ -21,6 +21,11 @@
       "file": "upstream/src/Pnl_msg.cpp",
       "upstream_sha256": "94e465350c7011082812cb9edeff4362eceaf8d98bba7a492419db87f80ac1aa",
       "ported_sha256": "18f0c7f2c0f823c84f1a10f99ce4319f5c37b317f7677b71a25605a362228339"
+    },
+    {
+      "file": "upstream/src/Pnl_scr.cpp",
+      "upstream_sha256": "8b891e3cdcb4806b05b24594cef65530a2c64459e768971122b9aad7b2cf2ca6",
+      "ported_sha256": "5c3fa4b6e844e087fda9c14ae4432a7678cb0598da78872924d2f1f6f35b44d5"
     },
     {
       "file": "upstream/src/Res_file.cpp",
@@ -45,7 +50,7 @@
     {
       "file": "upstream/src/basegame.cpp",
       "upstream_sha256": "f574cc27fc00d52bf0b05b64a0cac85529b9bc3400c52acdcc5c8ae4198fdecf",
-      "ported_sha256": "7b8d1c9f4f377cf44db5582cc3d45efa027988f5f7891a9b259e4b75c0ebe29d"
+      "ported_sha256": "04c7c48c5e80673c64690c08fb74ec8491932796e5a489117664a75582645e03"
     },
     {
       "file": "upstream/src/campaign.cpp",
@@ -61,6 +66,11 @@
       "file": "upstream/src/debuglog.cpp",
       "upstream_sha256": "2a7b94f0c8579805b85fd424bf40b919993b224e6d1d8c7323741b8383968764",
       "ported_sha256": "453e34c9f602a320a60b247ac359b9feeeab526ba4b47b6f6656f87d477e076a"
+    },
+    {
+      "file": "upstream/src/dlg_conf.cpp",
+      "upstream_sha256": "7b1b2c0fd953f2939fce5a03fa10062eb54937f1c91953d1058c38e041698eaf",
+      "ported_sha256": "9f12e7973757191f1899c98d14f37f8989be53f9e55189612ec3682422552a2e"
     },
     {
       "file": "upstream/src/drawarea.cpp",
@@ -113,6 +123,11 @@
       "ported_sha256": "863770c71007ca953e569825d30eae6fa250fe64a00d0d9465af9a8f849cd3d5"
     },
     {
+      "file": "upstream/src/scr_game.cpp",
+      "upstream_sha256": "39a60307f84155a16d035ddc100aca0e1c101a08b0889583558c14b41f7a9c53",
+      "ported_sha256": "cc877e8e009fd8e156a23b520c476ad759613799fc3279f339cf97a0af7df830"
+    },
+    {
       "file": "upstream/src/scr_mp.cpp",
       "upstream_sha256": "089ec9c2a7b0ee615f84e25e97ed6c857af34577efbb7f658fa4ad93d7719084",
       "ported_sha256": "86c3454717044dea483b513dd1b860f5cf495fe5ead33e05f43d81601cf58bae"
@@ -153,6 +168,11 @@
       "ported_sha256": "89136412b716a2b5b388bf53e0bd00a386e23a63c81a81d5bf5f5cd074e17c21"
     },
     {
+      "file": "upstream/src/tvw_main.cpp",
+      "upstream_sha256": "1544418a6c9d2a3beb741bbd26cc5131a59e0c94cca6f31deede03f1b4a845ef",
+      "ported_sha256": "55866de0ebefa27c3e8e4af5e16fce15f7fa93f8de59de97fcacfd7e555a2a2e"
+    },
+    {
       "file": "upstream/src/tworld.cpp",
       "upstream_sha256": "c694c6640e0c953c2e1a25de9b31f4e1c693d9caec32962fe8c86ea7d24b6769",
       "ported_sha256": "9b0aa21795dec7bc5d4bfcc73725e12c9a87b5bea621541084d0734481275b95"
@@ -181,6 +201,11 @@
       "file": "upstream/include/action.h",
       "upstream_sha256": "2ee3589a9aa90c3e5a6af7878e6f1992a24f83e7a7f61953605e17ae9de2619f",
       "ported_sha256": "1e8c03c02430f888073eb9d8fb91d570e6da883598e875fa4eb596ae76e01857"
+    },
+    {
+      "file": "upstream/include/basegame.h",
+      "upstream_sha256": "0383af063b52af73859476dec1c300f1a8b2b32ffbe85cf3a83e46c22edbf713",
+      "ported_sha256": "11fc7f50b0ca87b727606870647c4052c775e748797c5567b71c4ec54206ef1c"
     },
     {
       "file": "upstream/include/com_obj.h",

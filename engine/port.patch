@@ -79,6 +79,45 @@
  unsigned long __cdecl debug_timeGetTime(char*, int);
  
  TMessagePanel::TMessagePanel(void* font_in, long font_wid_in, long font_hgt_in) :
+--- a/src/Pnl_scr.cpp
++++ b/src/Pnl_scr.cpp
+@@ -1,5 +1,7 @@
+ 
+ #include "../include/Pnl_scr.h"
++#include "../include/basegame.h"
++#include "../include/rge_base_game_global.h"
+ 
+ extern void __cdecl RGE_fade_palette(TDrawArea*, PALETTEENTRY, float, unsigned char, PALETTEENTRY*, int, int);
+ 
+@@ -15,12 +17,17 @@
+ }
+ 
+ long TScreenPanel::setup(TDrawArea* render_area_in, char* info_file_name, long resource_file_id, int allow_shadow_area_in) {
++    // Widescreen (browser port): screens are laid out at the menu size.
++    if (rge_base_game != 0)
++        rge_base_game->fit_screen(this, 1);
+     return TEasy_Panel::setup(render_area_in, 0, info_file_name, resource_file_id, 1, 0, 0, 0, 0, allow_shadow_area_in) != 0;
+ }
+ 
+ long TScreenPanel::setup(
+     TDrawArea* render_area_in, char* palette_file, long pal_res_id, unsigned char color_in, int allow_shadow_area_in
+ ) {
++    if (rge_base_game != 0)
++        rge_base_game->fit_screen(this, 1);
+     return TEasy_Panel::setup(render_area_in, 0, 0, -1, 1, 0, 0, 0, 0, allow_shadow_area_in) != 0;
+ }
+ 
+@@ -43,6 +50,10 @@
+ 
+     local.save_focus = this->have_focus;
+     is_new = (this != last_screen) ? 1 : 0;
++
++    // Widescreen (browser port): the display takes the size of the screen being shown (the game screen widens).
++    if (have_focus_in && rge_base_game != 0)
++        rge_base_game->fit_screen(this, 0);
+ 
+     if (this->render_area && this->render_area->DrawSystem && have_focus_in && is_new) {
+         TDrawSystem* system = this->render_area->DrawSystem;
 --- a/src/Res_file.cpp
 +++ b/src/Res_file.cpp
 @@ -16,11 +16,11 @@
@@ -163,7 +202,25 @@
  RGE_Active_Sprite_List::RGE_Active_Sprite_List(RGE_Static_Object* owner_in) {
 --- a/src/basegame.cpp
 +++ b/src/basegame.cpp
-@@ -2160,7 +2160,7 @@
+@@ -446,7 +446,8 @@
+     }
+ 
+     if (this->draw_system != 0) {
+-        this->registry->RegSetInt(1, "Screen Size", this->draw_system->ScreenWidth);
++        // The menu size: the game screen may be wider (widescreen).
++        this->registry->RegSetInt(1, "Screen Size", menu_screen_width() ? menu_screen_width() : this->draw_system->ScreenWidth);
+     }
+ 
+     this->registry->RegSetInt(1, "Rollover Text", 2 + (this->rollover ? -1 : 0));
+@@ -1640,6 +1641,7 @@
+         )
+         == 0)
+         goto init_fail;
++    set_menu_screen_size(this->prog_info->main_wid, this->prog_info->main_hgt);
+ 
+     panel_system.release_palette(this->prog_palette);
+     this->prog_palette = (HPALETTE) panel_system.get_palette(this->prog_info->pal_file, 0xC544);
+@@ -2160,7 +2162,7 @@
  
  int RGE_Base_Game::check_expiration() {
      struct tm kill_def;
@@ -172,6 +229,65 @@
      long expiration_time;
  
      memset(&kill_def, 0, sizeof(kill_def));
+@@ -3776,6 +3778,58 @@
+     }
+ }
+ 
++// Browser port, widescreen. The page reports the shape of the area it can show the game in; 0 keeps every
++// screen at the 4:3 menu size, as in the retail game.
++static long menu_screen_wid, menu_screen_hgt;
++static int display_aspect_wid, display_aspect_hgt;
++#ifdef __EMSCRIPTEN__
++#include <emscripten.h>
++extern "C" EMSCRIPTEN_KEEPALIVE void aoe_set_display_aspect(int wid, int hgt) {
++    display_aspect_wid = wid;
++    display_aspect_hgt = hgt;
++}
++#endif
++
++void RGE_Base_Game::set_menu_screen_size(long wid, long hgt) {
++    menu_screen_wid = wid;
++    menu_screen_hgt = hgt;
++}
++
++long RGE_Base_Game::menu_screen_width() {
++    return menu_screen_wid;
++}
++
++void RGE_Base_Game::game_screen_size(long* wid, long* hgt) {
++    *wid = menu_screen_wid;
++    *hgt = menu_screen_hgt;
++    // Only the 4:3 sizes have a game screen layout that widens (TRIBE_Screen_Game::handle_size), not 1280x1024.
++    if (display_aspect_wid <= 0 || display_aspect_hgt <= 0 || menu_screen_wid * 3 != menu_screen_hgt * 4)
++        return;
++    // Whole multiples of 8 pixels, up to 2.4:1 (21:9 monitors).
++    long wide = (long) ((double) menu_screen_hgt * display_aspect_wid / display_aspect_hgt);
++    if (wide > menu_screen_hgt * 12 / 5)
++        wide = menu_screen_hgt * 12 / 5;
++    wide &= ~7;
++    if (wide >= menu_screen_wid + 16)
++        *wid = wide;
++}
++
++// The game screen is laid out at the menu size when created and widens once shown; every other screen is
++// created and shown at the menu size (their layouts and backgrounds are 4:3 only).
++void RGE_Base_Game::fit_screen(TPanel* screen, int creating) {
++    if (this->draw_area == 0 || this->draw_system == 0 || menu_screen_wid == 0 || screen == 0)
++        return;
++    long wid = menu_screen_wid;
++    long hgt = menu_screen_hgt;
++    if (screen->panelName() != 0 && strcmp(screen->panelName(), "Game Screen") == 0) {
++        if (creating)
++            return;
++        game_screen_size(&wid, &hgt);
++    }
++    if (this->draw_area->Width != wid || this->draw_area->Height != hgt)
++        this->set_screen_size(wid, hgt);
++}
++
+ void RGE_Base_Game::set_screen_size(long wid, long hgt) {
+     RECT win_rect;
+     RECT client_rect;
 --- a/src/campaign.cpp
 +++ b/src/campaign.cpp
 @@ -12,15 +12,15 @@
@@ -221,6 +337,29 @@
      char s2[32];
      char s3[32];
      char s4[32];
+--- a/src/dlg_conf.cpp
++++ b/src/dlg_conf.cpp
+@@ -180,7 +180,8 @@
+     for (i = 0; i < 3; ++i)
+         this->sizeButton[i]->set_radio_info(this->sizeButton, 3);
+ 
+-    int screen_width = this->render_area->DrawSystem->ScreenWidth;
++    // The chosen 4:3 size, not the display's: the game screen may be wider (widescreen, browser port).
++    int screen_width = RGE_Base_Game::menu_screen_width() ? RGE_Base_Game::menu_screen_width() : this->render_area->DrawSystem->ScreenWidth;
+     switch (screen_width) {
+         case 640:
+             this->sizeButton[0]->set_radio_button();
+@@ -516,6 +517,10 @@
+                     height = 480;
+                 }
+ 
++                // Widescreen (browser port): the choice is the menu size; the game screen keeps its height, widened.
++                RGE_Base_Game::set_menu_screen_size(width, height);
++                RGE_Base_Game::game_screen_size(&width, &height);
++
+                 panel_system.setCurrentPanel("Game Screen", 0);
+                 this->set_active(0);
+                 this->prepare_for_close();
 --- a/src/drawarea.cpp
 +++ b/src/drawarea.cpp
 @@ -1,4 +1,7 @@
@@ -435,6 +574,284 @@
  void __cdecl operator delete(void* block);
  RGE_Scenario_Header::RGE_Scenario_Header(RGE_Scenario* scenario_info) {
      this->error_code = 0;
+--- a/src/scr_game.cpp
++++ b/src/scr_game.cpp
+@@ -754,6 +754,83 @@
+     this->button_panel[16]->set_redraw(redraw_mode);
+ }
+ 
++// Widescreen (browser port). How much wider the display is than the 4:3 layout in use (640x480, 800x600 or
++// 1024x768) at that layout's height; 0 for those sizes and 1280x1024, which keep the retail layout.
++static long game_screen_wide_dx(long wid, long hgt) {
++    long base_wid = 640;
++    long base_hgt = 480;
++    if (wid >= 1024 && hgt >= 768) {
++        base_wid = 1024;
++        base_hgt = 768;
++    } else if (wid >= 800 && hgt >= 600) {
++        base_wid = 800;
++        base_hgt = 600;
++    }
++    return (hgt == base_hgt && wid > base_wid) ? wid - base_wid : 0;
++}
++
++// Widescreen: one strip of the game screen art (frame 0: the top bar, frame 1: the bottom panel) drawn dx wider.
++// Columns left of keep_left stay in place, the art from keep_left on is drawn dx to the right, and the gap
++// between is filled with copies of the art's columns [keep_left, keep_left + period), right to left, so the
++// copies join each other and the shifted art without a seam where the art repeats every period columns.
++static void draw_wide_strip(TShape* pic, TDrawArea* area, long y, int frame, long keep_left, long period, long dx) {
++    // Parts outside the clip rectangle (a child panel redrawing its background) are skipped: an inverted
++    // rectangle does not clip.
++    tagRECT clip = area->ClipRect;
++    tagRECT part = clip;
++    if (part.right > keep_left - 1)
++        part.right = keep_left - 1;
++    if (part.left <= part.right) {
++        area->SetClipRect(&part);
++        pic->shape_draw(area, 0, y, frame, 0, 0);
++    }
++    for (long offset = dx; offset + keep_left + period > keep_left; offset -= period) {
++        part = clip;
++        if (part.left < offset + keep_left)
++            part.left = offset + keep_left;
++        if (offset != dx && part.right > offset + keep_left + period - 1)
++            part.right = offset + keep_left + period - 1;
++        if (part.left < keep_left)
++            part.left = keep_left;
++        if (part.left <= part.right) {
++            area->SetClipRect(&part);
++            pic->shape_draw(area, offset, y, frame, 0, 0);
++        }
++    }
++    area->SetClipRect(&clip);
++}
++
++// The game screen art at any width: the retail drawing at the 4:3 sizes, widened otherwise.
++static void draw_game_screen_art(TShape* pic, TDrawArea* area, long wid, long hgt, int culture) {
++    // Columns of each culture's art (Egyptian, Greek, Babylonian, East Asian, Roman) after which it repeats, or
++    // nearly (top bar, bottom panel), measured from the retail art at each size.
++    static const short periods[3][5][2] = {
++        {{79, 217}, {88, 229}, {89, 202}, {91, 195}, {49, 118}},
++        {{79, 217}, {88, 229}, {89, 202}, {91, 413}, {58, 363}},
++        {{446, 217}, {88, 459}, {89, 202}, {91, 637}, {53, 471}},
++    };
++    int size = 0;
++    long bottom_y = 354;
++    if (wid >= 1024 && hgt >= 768) {
++        size = 2;
++        bottom_y = 642;
++    } else if (wid >= 800 && hgt >= 600) {
++        size = 1;
++        bottom_y = 474;
++    }
++    long dx = game_screen_wide_dx(wid, hgt);
++    if (dx == 0) {
++        pic->shape_draw(area, 0, 0, 0, 0, 0);
++        pic->shape_draw(area, 0, bottom_y, 1, 0, 0);
++        return;
++    }
++    if (culture < 0 || culture >= 5)
++        culture = 0;
++    // The top bar keeps the inventory at the left; the bottom panel keeps the object panel's frame.
++    draw_wide_strip(pic, area, 0, 0, 270, periods[size][culture][0], dx);
++    draw_wide_strip(pic, area, bottom_y, 1, 136, periods[size][culture][1], dx);
++}
++
+ long TRIBE_Screen_Game::handle_size(long win_wid, long win_hgt) {
+     TPanel::handle_size(win_wid, win_hgt);
+ 
+@@ -785,19 +862,23 @@
+     }
+ 
+     short final_frame;
++    // Widescreen (browser port): on a display wider than the layout's 4:3 size (same height), the map view
++    // widens and the right-hand parts (minimap, top-right and minimap buttons) move to the right edge.
++    long dx;
+ 
+     if (this->pnl_wid >= 1024 && this->pnl_hgt >= 768) {
+-        this->pop_panel->set_positioning(TPanel::PositionLeftTop, 432, 4, 4, 4, 160, 160, 20, 20, 0, 0, 0, 0);
++        dx = game_screen_wide_dx(this->pnl_wid, this->pnl_hgt);
++        this->pop_panel->set_positioning(TPanel::PositionLeftTop, 432 + dx / 2, 4, 4, 4, 160, 160, 20, 20, 0, 0, 0, 0);
+ 
+         if (this->tool_box->active != 0) {
+-            this->tool_box->set_fixed_position(0, 20, 1024, 30);
+-            this->main_view->set_fixed_position(0, 50, 1024, 592);
++            this->tool_box->set_fixed_position(0, 20, 1024 + dx, 30);
++            this->main_view->set_fixed_position(0, 50, 1024 + dx, 592);
+         } else {
+-            this->main_view->set_fixed_position(0, 20, 1024, 622);
+-        }
+-
+-        this->map_view->set_fixed_position(795, 648, 220, 114);
+-        this->age_panel->set_fixed_position(270, 2, 492, 16);
++            this->main_view->set_fixed_position(0, 20, 1024 + dx, 622);
++        }
++
++        this->map_view->set_fixed_position(795 + dx, 648, 220, 114);
++        this->age_panel->set_fixed_position(270, 2, 492 + dx, 16);
+         this->fps_panel->set_fixed_position(2, 2, 280, 16);
+         this->inven_panel->set_fixed_position(0, 0, 270, 20);
+         this->object_panel->set_fixed_position(5, 649, 127, 114);
+@@ -815,12 +896,12 @@
+             panel_y += 58;
+         }
+ 
+-        this->button_panel[12]->set_fixed_position(772, 0, 72, 19);
+-        this->button_panel[13]->set_fixed_position(844, 0, 108, 19);
+-        this->button_panel[14]->set_fixed_position(952, 0, 72, 19);
+-        this->button_panel[15]->set_fixed_position(989, 732, 30, 30);
++        this->button_panel[12]->set_fixed_position(772 + dx, 0, 72, 19);
++        this->button_panel[13]->set_fixed_position(844 + dx, 0, 108, 19);
++        this->button_panel[14]->set_fixed_position(952 + dx, 0, 72, 19);
++        this->button_panel[15]->set_fixed_position(989 + dx, 732, 30, 30);
+         this->button_panel[15]->tribe_button_type = 3;
+-        this->button_panel[16]->set_fixed_position(989, 650, 30, 30);
++        this->button_panel[16]->set_fixed_position(989 + dx, 650, 30, 30);
+         this->button_panel[16]->tribe_button_type = 3;
+ 
+         this->more_cancel_pic = this->button_cmd_pic;
+@@ -828,17 +909,18 @@
+         final_frame = 0xA;
+     } else {
+         if (this->pnl_wid >= 800 && this->pnl_hgt >= 600) {
+-            this->pop_panel->set_positioning(TPanel::PositionLeftTop, 320, 4, 4, 4, 160, 160, 20, 20, 0, 0, 0, 0);
++            dx = game_screen_wide_dx(this->pnl_wid, this->pnl_hgt);
++            this->pop_panel->set_positioning(TPanel::PositionLeftTop, 320 + dx / 2, 4, 4, 4, 160, 160, 20, 20, 0, 0, 0, 0);
+ 
+             if (this->tool_box->active != 0) {
+-                this->tool_box->set_fixed_position(0, 20, 800, 30);
+-                this->main_view->set_fixed_position(0, 50, 800, 424);
++                this->tool_box->set_fixed_position(0, 20, 800 + dx, 30);
++                this->main_view->set_fixed_position(0, 50, 800 + dx, 424);
+             } else {
+-                this->main_view->set_fixed_position(0, 20, 800, 454);
+-            }
+-
+-            this->map_view->set_fixed_position(571, 480, 220, 114);
+-            this->age_panel->set_fixed_position(270, 2, 268, 16);
++                this->main_view->set_fixed_position(0, 20, 800 + dx, 454);
++            }
++
++            this->map_view->set_fixed_position(571 + dx, 480, 220, 114);
++            this->age_panel->set_fixed_position(270, 2, 268 + dx, 16);
+             this->fps_panel->set_fixed_position(2, 2, 280, 16);
+             this->inven_panel->set_fixed_position(0, 0, 270, 20);
+             this->object_panel->set_fixed_position(5, 481, 127, 114);
+@@ -856,29 +938,30 @@
+                 panel_y += 58;
+             }
+ 
+-            this->button_panel[12]->set_fixed_position(548, 0, 72, 19);
+-            this->button_panel[13]->set_fixed_position(620, 0, 108, 19);
+-            this->button_panel[14]->set_fixed_position(728, 0, 72, 19);
+-            this->button_panel[15]->set_fixed_position(765, 564, 30, 30);
++            this->button_panel[12]->set_fixed_position(548 + dx, 0, 72, 19);
++            this->button_panel[13]->set_fixed_position(620 + dx, 0, 108, 19);
++            this->button_panel[14]->set_fixed_position(728 + dx, 0, 72, 19);
++            this->button_panel[15]->set_fixed_position(765 + dx, 564, 30, 30);
+             this->button_panel[15]->tribe_button_type = 3;
+-            this->button_panel[16]->set_fixed_position(765, 482, 30, 30);
++            this->button_panel[16]->set_fixed_position(765 + dx, 482, 30, 30);
+             this->button_panel[16]->tribe_button_type = 3;
+ 
+             this->more_cancel_pic = this->button_cmd_pic;
+             this->more_frame = 0xB;
+             final_frame = 0xA;
+         } else {
+-            this->pop_panel->set_positioning(TPanel::PositionLeftTop, 240, 4, 4, 4, 160, 160, 20, 20, 0, 0, 0, 0);
++            dx = game_screen_wide_dx(this->pnl_wid, this->pnl_hgt);
++            this->pop_panel->set_positioning(TPanel::PositionLeftTop, 240 + dx / 2, 4, 4, 4, 160, 160, 20, 20, 0, 0, 0, 0);
+ 
+             if (this->tool_box->active != 0) {
+-                this->tool_box->set_fixed_position(0, 20, 640, 30);
+-                this->main_view->set_fixed_position(0, 50, 640, 304);
++                this->tool_box->set_fixed_position(0, 20, 640 + dx, 30);
++                this->main_view->set_fixed_position(0, 50, 640 + dx, 304);
+             } else {
+-                this->main_view->set_fixed_position(0, 20, 640, 334);
+-            }
+-
+-            this->map_view->set_fixed_position(411, 362, 220, 114);
+-            this->age_panel->set_fixed_position(270, 2, 106, 16);
++                this->main_view->set_fixed_position(0, 20, 640 + dx, 334);
++            }
++
++            this->map_view->set_fixed_position(411 + dx, 362, 220, 114);
++            this->age_panel->set_fixed_position(270, 2, 106 + dx, 16);
+             this->fps_panel->set_fixed_position(2, 2, 280, 16);
+             this->inven_panel->set_fixed_position(0, 0, 270, 20);
+             this->object_panel->set_fixed_position(5, 361, 127, 114);
+@@ -896,16 +979,16 @@
+                 panel_y += 58;
+             }
+ 
+-            this->button_panel[5]->set_fixed_position(406, 362, 102, 53);
++            this->button_panel[5]->set_fixed_position(406 + dx, 362, 102, 53);
+             this->button_panel[5]->tribe_button_type = 2;
+-            this->button_panel[11]->set_fixed_position(406, 443, 102, 53);
++            this->button_panel[11]->set_fixed_position(406 + dx, 443, 102, 53);
+             this->button_panel[11]->tribe_button_type = 2;
+-            this->button_panel[12]->set_fixed_position(388, 0, 72, 19);
+-            this->button_panel[13]->set_fixed_position(460, 0, 108, 19);
+-            this->button_panel[14]->set_fixed_position(568, 0, 72, 19);
+-            this->button_panel[15]->set_fixed_position(605, 444, 30, 30);
++            this->button_panel[12]->set_fixed_position(388 + dx, 0, 72, 19);
++            this->button_panel[13]->set_fixed_position(460 + dx, 0, 108, 19);
++            this->button_panel[14]->set_fixed_position(568 + dx, 0, 72, 19);
++            this->button_panel[15]->set_fixed_position(605 + dx, 444, 30, 30);
+             this->button_panel[15]->tribe_button_type = 3;
+-            this->button_panel[16]->set_fixed_position(605, 362, 30, 30);
++            this->button_panel[16]->set_fixed_position(605 + dx, 362, 30, 30);
+             this->button_panel[16]->tribe_button_type = 3;
+ 
+             this->more_cancel_pic = this->button_other_pic;
+@@ -1059,6 +1142,10 @@
+         color_log(0x5F, 0x4C, 5);
+         rge_base_game->enable_input();
+     }
++
++    // Widescreen (browser port): follow the page when its shape changes during the game.
++    if (panel_system.currentPanel() == this && do_color_log == 0)
++        rge_base_game->fit_screen(this, 0);
+ 
+     color_log(0x5F, 0x16, 5);
+     int mode = rge_base_game->prog_mode;
+@@ -3495,16 +3582,7 @@
+         }
+         if (this->game_screen_pic) {
+             if (this->render_area->Lock(s_scr_game_draw2, 1)) {
+-                if (this->pnl_wid >= 1024 && this->pnl_hgt >= 768) {
+-                    this->game_screen_pic->shape_draw(this->render_area, 0, 0, 0, 0, 0);
+-                    this->game_screen_pic->shape_draw(this->render_area, 0, 642, 1, 0, 0);
+-                } else if (this->pnl_wid >= 800 && this->pnl_hgt >= 600) {
+-                    this->game_screen_pic->shape_draw(this->render_area, 0, 0, 0, 0, 0);
+-                    this->game_screen_pic->shape_draw(this->render_area, 0, 474, 1, 0, 0);
+-                } else {
+-                    this->game_screen_pic->shape_draw(this->render_area, 0, 0, 0, 0, 0);
+-                    this->game_screen_pic->shape_draw(this->render_area, 0, 354, 1, 0, 0);
+-                }
++                draw_game_screen_art(this->game_screen_pic, this->render_area, this->pnl_wid, this->pnl_hgt, this->save_culture);
+                 this->render_area->Unlock(s_scr_game_draw2);
+             }
+         }
+@@ -3520,16 +3598,7 @@
+         this->draw_setup(flag);
+         if (this->game_screen_pic) {
+             if (this->render_area->Lock(s_scr_game_draw3, 1)) {
+-                if (this->pnl_wid >= 1024 && this->pnl_hgt >= 768) {
+-                    this->game_screen_pic->shape_draw(this->render_area, 0, 0, 0, 0, 0);
+-                    this->game_screen_pic->shape_draw(this->render_area, 0, 642, 1, 0, 0);
+-                } else if (this->pnl_wid >= 800 && this->pnl_hgt >= 600) {
+-                    this->game_screen_pic->shape_draw(this->render_area, 0, 0, 0, 0, 0);
+-                    this->game_screen_pic->shape_draw(this->render_area, 0, 474, 1, 0, 0);
+-                } else {
+-                    this->game_screen_pic->shape_draw(this->render_area, 0, 0, 0, 0, 0);
+-                    this->game_screen_pic->shape_draw(this->render_area, 0, 354, 1, 0, 0);
+-                }
++                draw_game_screen_art(this->game_screen_pic, this->render_area, this->pnl_wid, this->pnl_hgt, this->save_culture);
+                 this->render_area->Unlock(s_scr_game_draw3);
+             }
+         }
 --- a/src/scr_mp.cpp
 +++ b/src/scr_mp.cpp
 @@ -5,7 +5,7 @@
@@ -675,6 +1092,20 @@
  
  void TRIBE_Game::shutdown_video_system() {
      if (video_setup == 0)
+--- a/src/tvw_main.cpp
++++ b/src/tvw_main.cpp
+@@ -655,6 +655,11 @@
+ long TRIBE_Main_View::mouse_left_dbl_click_action(long x, long y, int ctrl_key, int shift_key) {
+     RGE_Pick_Info pick_info;
+ 
++    // Retail 1.0a (0x50C120) leaves double-clicks unhandled in the Scenario Editor; the recovered beta source
++    // lacks this test.
++    if (rge_base_game->prog_mode == RGE_PROGRAM_MODE_SCENARIO_EDITOR)
++        return 0;
++
+     if (this->pick1(0x29, 1, x, y, &pick_info, 0, 1) == 0x34) {
+         if ((pick_info.object->master_obj->select_level == 4) && (pick_info.object->owner == this->player)) {
+             if ((ctrl_key == 0) && (shift_key == 0)) {
 --- a/src/tworld.cpp
 +++ b/src/tworld.cpp
 @@ -72,7 +72,7 @@
@@ -752,6 +1183,22 @@
  
      unsigned char subAction() const;
      void setSubAction(unsigned char v);
+--- a/include/basegame.h
++++ b/include/basegame.h
+@@ -627,6 +627,13 @@
+     void turn_world_sound_off();
+     long GetWorldChecksum();
+     void set_screen_size(long, long);
++    // Browser port, widescreen. The menus keep the 4:3 size the player chose; the game screen keeps its height and
++    // widens to the page's aspect ratio (aoe_set_display_aspect). fit_screen sets the display size for a screen
++    // panel that is being created or shown.
++    static void set_menu_screen_size(long wid, long hgt);
++    static long menu_screen_width();
++    static void game_screen_size(long* wid, long* hgt);
++    void fit_screen(TPanel* screen, int creating);
+     long get_scenario_checksum(char* scenario_file);
+     unsigned char check_scenario_checksum(char* scenario, long checksum);
+     void dump_memory_usage(char* file_name);
 --- a/include/com_obj.h
 +++ b/include/com_obj.h
 @@ -94,6 +94,7 @@

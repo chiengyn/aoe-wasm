@@ -868,7 +868,7 @@ long TRIBE_Screen_Game::handle_size(long win_wid, long win_hgt) {
 
     if (this->pnl_wid >= 1024 && this->pnl_hgt >= 768) {
         dx = game_screen_wide_dx(this->pnl_wid, this->pnl_hgt);
-        this->pop_panel->set_positioning(TPanel::PositionLeftTop, 432, 4, 4, 4, 160, 160, 20, 20, 0, 0, 0, 0);
+        this->pop_panel->set_positioning(TPanel::PositionLeftTop, 432 + dx / 2, 4, 4, 4, 160, 160, 20, 20, 0, 0, 0, 0);
 
         if (this->tool_box->active != 0) {
             this->tool_box->set_fixed_position(0, 20, 1024 + dx, 30);
@@ -910,7 +910,7 @@ long TRIBE_Screen_Game::handle_size(long win_wid, long win_hgt) {
     } else {
         if (this->pnl_wid >= 800 && this->pnl_hgt >= 600) {
             dx = game_screen_wide_dx(this->pnl_wid, this->pnl_hgt);
-            this->pop_panel->set_positioning(TPanel::PositionLeftTop, 320, 4, 4, 4, 160, 160, 20, 20, 0, 0, 0, 0);
+            this->pop_panel->set_positioning(TPanel::PositionLeftTop, 320 + dx / 2, 4, 4, 4, 160, 160, 20, 20, 0, 0, 0, 0);
 
             if (this->tool_box->active != 0) {
                 this->tool_box->set_fixed_position(0, 20, 800 + dx, 30);
@@ -951,7 +951,7 @@ long TRIBE_Screen_Game::handle_size(long win_wid, long win_hgt) {
             final_frame = 0xA;
         } else {
             dx = game_screen_wide_dx(this->pnl_wid, this->pnl_hgt);
-            this->pop_panel->set_positioning(TPanel::PositionLeftTop, 240, 4, 4, 4, 160, 160, 20, 20, 0, 0, 0, 0);
+            this->pop_panel->set_positioning(TPanel::PositionLeftTop, 240 + dx / 2, 4, 4, 4, 160, 160, 20, 20, 0, 0, 0, 0);
 
             if (this->tool_box->active != 0) {
                 this->tool_box->set_fixed_position(0, 20, 640 + dx, 30);
