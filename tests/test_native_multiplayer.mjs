@@ -1,11 +1,11 @@
 // Phase 4: two real-WinMain games play multiplayer through the game's own DirectPlay networking, relayed by
-// tools/serve.py (DirectPlay over WebSocket). Host: Multiplayer -> Browser connection -> Create; guest:
+// the Go server (server/, DirectPlay over WebSocket). Host: Multiplayer -> Browser connection -> Create; guest:
 // Show Games -> Join; both Ready; host Start Game. Then the two simulations must stay identical while the
 // host trains a villager. Writes reports/native-multiplayer-tests.json and frame PNGs.
 import fs from 'node:fs';
 import zlib from 'node:zlib';
 import assert from 'node:assert/strict';
-import {spawn} from 'node:child_process';
+import {spawn, execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 // AOE_BUILD=build-release tests the optimized build (engine/build.py --release).
 const BUILD_DIR = process.env.AOE_BUILD || 'build';
@@ -27,7 +27,13 @@ const ok = (value, message) => { assert.ok(value, message); checks++; };
 const eq = (a, b, message) => { assert.deepEqual(a, b, message); checks++; };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-const server = spawn('python3', [new URL('tools/serve.py', root).pathname, '--port', String(port)], {stdio: ['ignore', 'pipe', 'ignore']});
+// AOE_SERVER: a prebuilt server binary. Otherwise server/ is built first (GO: the go command to use).
+let serverBin = process.env.AOE_SERVER;
+if (!serverBin) {
+  serverBin = new URL('server/build/aoe-server', root).pathname;
+  execFileSync(process.env.GO || 'go', ['build', '-o', serverBin, '.'], {cwd: new URL('server/', root).pathname, stdio: 'inherit'});
+}
+const server = spawn(serverBin, ['-port', String(port), '-web', new URL('web', root).pathname], {stdio: ['ignore', 'pipe', 'inherit']});
 process.on('exit', () => server.kill());
 await new Promise((resolve, reject) => { server.stdout.once('data', resolve); server.once('exit', code => reject(new Error('relay exited ' + code))); });
 
@@ -277,8 +283,10 @@ if (games.length === 1) {
 eq(games.flatMap(g => g.boxes), [], 'No message boxes');
 eq(games.flatMap(g => g.log).filter(l => /Unsupported|unsupported/.test(l)), [], 'No unported calls');
 
+// Relay traffic of the whole run (lobby + match), for sizing the server.
+const relayStats = await (await fetch(`http://127.0.0.1:${port}/healthz`)).json();
 const report = {
-  passed: true, players: PLAYERS, checks, lockstepComparisons: compared, worldTime: games.map(g => g.state(1)),
+  passed: true, players: PLAYERS, relay: relayStats, checks, lockstepComparisons: compared, worldTime: games.map(g => g.state(1)),
   hostPlayer: snapshot(host)[hostPlayer], frames: games.map(g => g.frames), playSeconds: PLAY_SECONDS, commandTurns: turn,
   heapGrowthBytes: heapGrowth,
   wasmSha256: createHash('sha256').update(wasmBinary).digest('hex'),

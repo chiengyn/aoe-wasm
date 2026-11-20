@@ -28,7 +28,7 @@ def main():
     parser.add_argument('--jobs', type=int, default=4)
     parser.add_argument('--only', nargs='+', help='Compile selected stems; does not replace the full-build report')
     parser.add_argument('--probe', action='store_true', help='Link the headless diagnostic after a successful full compile')
-    parser.add_argument('--web', action='store_true', help='With --game: copy game.mjs/.wasm into web/engine/ for tools/serve.py')
+    parser.add_argument('--web', action='store_true', help='With --game: copy game.mjs/.wasm into web/engine/ for the server')
     parser.add_argument('--relink', action='store_true', help='Reuse a complete build only when all source, object and header hashes still match')
     parser.add_argument('--game', action='store_true', help='Also link the real WinMain build (game.mjs/.wasm) with Asyncify')
     parser.add_argument('--release', action='store_true', help='Optimized game build without debug info, in engine/build-release')

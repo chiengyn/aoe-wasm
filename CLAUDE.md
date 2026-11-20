@@ -29,15 +29,16 @@ python3 tools/prepare_native.py '<game folder>'      # web/game/native, video, h
 python3 tools/prepare_test_data.py '<game folder>'   # web/game/ data for the probe/format tests
 python3 tools/fetch_vendor.py                        # web/vendor: SpessaSynth + soundfont (music)
 
-# Run
-python3 tools/serve.py        # http://127.0.0.1:8788/ ; --host 0.0.0.0 for LAN
-docker build -t aoe-wasm .    # image without game data; mount it at /game (README, "Docker")
+# Run (Go server: static files + DirectPlay relay)
+(cd server && go build -o build/aoe-server .) && server/build/aoe-server   # http://127.0.0.1:8788/ ; -host 0.0.0.0 for LAN
+docker build -t aoe-wasm .                                   # server image; data via the prepare image (README, "Docker")
 
 # Tests (headless Node; each writes reports/<name>.json)
 node tests/test_native_menu.mjs
-AOE_PLAYERS=2 node tests/test_native_multiplayer.mjs   # AOE_BUILD=build-release, AOE_DATA, AOE_PLAY_SECONDS
-python3 tests/test_dplay_relay.py
+AOE_PLAYERS=2 node tests/test_native_multiplayer.mjs   # builds/starts the Go server; AOE_BUILD, AOE_DATA, GO, AOE_SERVER
 python3 tests/test_web_static.py --built
+(cd server && go test -race ./...)                     # relay protocol, concurrency, HTTP/WebSocket
+server/build/loadtest -matches 50 -players 8           # against a running server: delivery, order, latency
 ```
 
 The README has the full test list. After a change to `engine/platform/` or `engine/upstream/`, rebuild with
@@ -56,7 +57,12 @@ fixtures (see README).
   APIs that are still unported (they abort with their name when reached).
 - `web/`: the page (`native.html`) and the modules it loads. The game runs in a Web Worker
   (`native-worker.mjs`). `web/engine/`, `web/game*/` and `web/vendor/` are generated.
-- `tools/`: Python tools, standard library only (except the Unicorn-based oracle in `tests/`).
+- `server/`: the Go server. `relay/` implements the DirectPlay relay protocol (the counterpart of
+  `engine/platform/win32_dplay.cpp`; both must change together). It uses a lock per session plus a registry
+  lock, and each connection has a non-blocking outbox: a client whose backlog passes 32 MiB is dropped
+  instead of stalling its match.
+- `tools/`: Python tools for building, data preparation and retail checks, standard library only (except
+  the Unicorn-based oracle in `tests/`).
 - `formats/`: standalone DRS/SLP/DAT readers in C. The tests use them to cross-check the engine; the
   game doesn't use them.
 - `tests/lib/`: JS wrappers that the probe and format tests share.

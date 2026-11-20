@@ -1,5 +1,5 @@
 // WebSocket transport for the game's DirectPlay service provider (engine/platform/win32_dplay.cpp).
-// Frames are opaque bytes in both directions; the relay is tools/dplay_relay.py. The socket opens on
+// Frames are opaque bytes in both directions; the relay is server/relay (Go). The socket opens on
 // first use, and frames sent before it opens are queued.
 export function attachDirectPlay(Module, url, Socket = globalThis.WebSocket) {
   let socket = null, open = false, closed = false;

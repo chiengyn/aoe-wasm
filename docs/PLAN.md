@@ -3,7 +3,9 @@
 > This is the working plan and progress log, kept as written during development. Some paths and pages it
 > mentions belong to the earlier layout: `src/` is now `formats/`, `tools/build.py` is `formats/build.py`,
 > `tools/prepare.py` is `tools/prepare_test_data.py`, and the probe-based prototype pages (`menu.html`,
-> `play.html`, `units.html`, `resources.html`) were removed. See the README for the current layout.
+> `play.html`, `units.html`, `resources.html`) were removed. The Python server and relay (`tools/serve.py`,
+> `tools/dplay_relay.py`, `tests/test_dplay_relay.py`) were replaced by the Go server in `server/`, with the
+> same wire protocol. See the README for the current layout.
 
 Source: [dcostap/aoe1-decomp](https://github.com/dcostap/aoe1-decomp) at `6d6d8b14023aa74e6ac30a6c88229d5b818fb805`
 (checked 2026-11-18: this is still upstream `HEAD`; nothing newer exists). The source is vendored in

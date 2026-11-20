@@ -1,14 +1,28 @@
-# docker compose up --build
+# docker compose up -d --build
 # Set AOE_GAME_DIR to your Age of Empires folder (the one with EMPIRESX.EXE), e.g. in a .env file.
+# `prepare` fills the data volume once (later runs skip it), then `server` starts with the volume read-only.
 services:
-  aoe:
-    build: .
-    image: aoe-wasm
-    ports:
-      - "8788:8788"
+  prepare:
+    build:
+      context: .
+      target: prepare
+    image: aoe-wasm-prepare
     volumes:
       - aoe-data:/app/web/game
       - "${AOE_GAME_DIR:?Set AOE_GAME_DIR to your Age of Empires folder}:/game:ro"
+
+  server:
+    build:
+      context: .
+      target: server
+    image: aoe-wasm
+    depends_on:
+      prepare:
+        condition: service_completed_successfully
+    ports:
+      - "8788:8788"
+    volumes:
+      - aoe-data:/app/web/game:ro
     restart: unless-stopped
 
 volumes:

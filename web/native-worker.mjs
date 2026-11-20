@@ -58,7 +58,7 @@ async function start(commandLine) {
     onAbort: reason => end('abort', {reason: String(reason)}),
   });
   game._aoe_set_display_aspect(...aspect);
-  // DirectPlay "Browser" connection type: the relay served by tools/serve.py.
+  // DirectPlay "Browser" connection type: the relay served by the Go server (server/).
   attachDirectPlay(game, `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/api/dplay`);
   // Sound, music and intro videos play on the page (web/native-media.mjs).
   attachMedia(game, (m, transfer) => postMessage({type: 'media', m}, transfer || []), native.videos || {});

@@ -1,5 +1,5 @@
 // DirectPlay for the real-WinMain build: one service provider, "Browser", that carries the game's own
-// DirectPlay traffic through a WebSocket relay (tools/dplay_relay.py). The game's networking code
+// DirectPlay traffic through a WebSocket relay (server/relay). The game's networking code
 // (com_hand.cpp: sessions, players, guaranteed messages, sync, host migration) runs unmodified.
 //
 // Calls that wait for the relay (EnumSessions, Open, CreatePlayer) block like DirectPlay did, by yielding
@@ -21,7 +21,7 @@
 static const GUID BROWSER_PROVIDER = {0x6f9c7f1a, 0x2b8e, 0x4c3d, {0x9a, 0x41, 0x41, 0x45, 0x4f, 0x45, 0x00, 0x01}};
 static const char* const BROWSER_PROVIDER_NAME = "Browser Connection For DirectPlay";
 
-// ---------------------------------------------------------------- wire format (see tools/dplay_relay.py)
+// ---------------------------------------------------------------- wire format (see server/relay/protocol.go)
 enum Op {
     OP_ENUM = 1, OP_CREATE = 2, OP_JOIN = 3, OP_CREATE_PLAYER = 4, OP_DESTROY_PLAYER = 5, OP_SEND = 6, OP_SET_DATA = 7,
     OP_SET_NAME = 8, OP_SET_DESC = 9, OP_ENABLE_NEW = 10, OP_CLOSE = 11,

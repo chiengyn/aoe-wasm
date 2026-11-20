@@ -15,7 +15,8 @@ No game data is included. You need your own copy of the game. The port targets t
 
 - **Multiplayer works** from start to finish through the game's own menus: connection list, game list, lobby
   with chat and ready flags, match, and dropped-player handling. Up to 8 players, each in a browser window on
-  this machine or on the LAN. Packets go through a WebSocket relay in `tools/serve.py`.
+  this machine or on the LAN. Packets go through the WebSocket relay of the Go server in `server/`, which
+  runs many matches at once.
 - Sound effects, MIDI music (SpessaSynth + GeneralUser GS soundfont), intro videos and the WinHelp file
   (converted to HTML) work.
 - A widescreen game view is optional (`?wide=0` keeps the original 4:3).
@@ -28,7 +29,8 @@ No game data is included. You need your own copy of the game. The port targets t
 ## Requirements
 
 - Your own Age of Empires + Rise of Rome installation (the folder that contains `EMPIRESX.EXE`).
-- Python 3 (standard library only for building and serving) and Node.js (tests).
+- [Go](https://go.dev/dl/) 1.26+ (the server), Python 3 (build and data tools, standard library only) and
+  Node.js (tests).
 - [Emscripten](https://emscripten.org/docs/getting_started/downloads.html) to build the engine (tested with
   emsdk 7.0.0). Pass its location with `--sdk`.
 - Optional: `ffmpeg` (converts the intro videos), and `clang` + `wasm-ld` (the standalone format readers
@@ -46,8 +48,9 @@ python3 tools/prepare_native.py '/path/to/Age of Empires'
 # 3. Optional: download the MIDI synthesizer and soundfont (hash-checked) for music
 python3 tools/fetch_vendor.py
 
-# 4. Serve and open http://127.0.0.1:8788/
-python3 tools/serve.py            # --host 0.0.0.0 to allow other machines on the LAN; --port to change it
+# 4. Build the server, run it from the repository root, and open http://127.0.0.1:8788/
+(cd server && go build -o build/aoe-server .)
+server/build/aoe-server           # -host 0.0.0.0 to allow other machines on the LAN; -port to change it
 ```
 
 Don't open the HTML file through `file://`. The page needs the local server for the WASM, the game files and
@@ -55,21 +58,25 @@ the multiplayer relay.
 
 ### Docker
 
-The image builds the release engine with Emscripten and downloads the music files. It then runs the
-server on port 8788. **It contains no game data.** Mount your own installation at `/game`. On first start,
-the container prepares the data into the `/app/web/game` volume; later starts reuse it.
+The Dockerfile builds two images. **Neither contains game data.**
+
+- `aoe-wasm` (the default target) holds the Go server, the page, the release engine (built with
+  Emscripten) and the music files. The server is a static binary on distroless. The image is about 36 MB
+  compressed, most of it the soundfont.
+- `aoe-wasm-prepare` (`--target prepare`) holds Python and ffmpeg. It copies your game folder, mounted at
+  `/game`, into the `aoe-data` volume. When the volume is already prepared, it does nothing; `--force`
+  prepares again.
 
 ```sh
 docker build -t aoe-wasm .                    # --build-arg MUSIC=0 leaves out the MIDI synth and soundfont
-docker run -d --name aoe -p 8788:8788 \
-  -v aoe-data:/app/web/game \
-  -v "/path/to/Age of Empires:/game:ro" \
-  aoe-wasm
+docker build --target prepare -t aoe-wasm-prepare .
+docker run --rm -v aoe-data:/app/web/game -v "/path/to/Age of Empires:/game:ro" aoe-wasm-prepare
+docker run -d --name aoe -p 8788:8788 -v aoe-data:/app/web/game:ro aoe-wasm
 ```
 
 Or set `AOE_GAME_DIR=/path/to/Age of Empires` (in the shell or a `.env` file) and run
-`docker compose up -d --build`. `docker run … aoe-wasm prepare` prepares the data again, for example
-after you change the game folder. `PORT` changes the port inside the container.
+`docker compose up -d --build`, which prepares the volume first and then starts the server. `PORT`
+changes the port inside the container.
 
 Behind a TLS reverse proxy (for example nginx or Caddy), forward the `Host` header and allow the
 WebSocket upgrade on `/api/dplay`. The page then connects over `wss://` on its own. Everything else is
@@ -96,6 +103,37 @@ game, so keep the server private (LAN, VPN, or behind authentication on the prox
 | `?cmd=<args>` | Game command line (default `NODXCHECK`), e.g. `NOSTARTUP` to skip the intro videos |
 | `?autostart` | Start without the click-to-start screen (the browser may then block sound) |
 
+## Server
+
+`server/build/aoe-server` serves `web/` and relays the game's DirectPlay traffic over the `/api/dplay`
+WebSocket. It runs any number of matches at the same time; each session has its own lock, so matches don't
+wait on each other.
+
+| Flag / endpoint | Meaning |
+|---|---|
+| `-host`, `-port` | Listen address (default `127.0.0.1:8788`; `PORT` sets the default port) |
+| `-web` | Folder to serve (default `web`, relative to the working directory) |
+| `-log-requests` | Log every file request |
+| `/healthz` | JSON: sessions, players, connections, relayed frames, dropped clients |
+| `aoe-server healthcheck` | Exits 0 when the local server answers `/healthz` (used by the Docker image) |
+
+A client that stops reading is disconnected once 32 MiB are queued for it, so one stalled browser can't
+hold up its match. WebSocket pings every 30 s keep idle lobbies open through proxies.
+
+`server/loadtest` simulates matches against a running server and checks every message. Each player
+broadcasts at a fixed rate, and every message must arrive exactly once, in order, and only within its own
+match. Measured on one 22-core machine, with the load generator running on the same machine:
+
+| Load (8 players per match, 20 messages/s each) | Go server | Former Python server |
+|---|---|---|
+| 50 matches (400 connections, 56k deliveries/s) | p50 3.6 ms, p99 8 ms | p50 48 ms, p99 54 ms |
+| 200 matches (1,600 connections, 224k deliveries/s) | p50 18 ms, p99 35 ms | fell behind: p50 12 s |
+
+The relay counted about 18.6k frames in and 31.5k out for one real 8-player match in
+`test_native_multiplayer.mjs` (lobby plus 40 s of play). Static files are served with revalidation
+(`Cache-Control: no-cache`, 304 when unchanged) but without compression. For many players, put a CDN or a
+compressing proxy in front of the static files.
+
 ## Repository layout
 
 ```text
@@ -110,19 +148,21 @@ engine/              The game engine compiled to WASM
 web/                 The page: native.html (canvas, input, help overlay), native-worker.mjs (runs the game
                      in a Web Worker), native-media/-midi/-dplay/-storage.mjs (audio, music, network,
                      IndexedDB saves), aoe-fonts.mjs (canvas fonts standing in for Windows fonts)
-tools/               Python tools: serve.py + dplay_relay.py (HTTP server and DirectPlay relay),
-                     prepare_native.py (game data), convert_help.py (WinHelp to HTML), fetch_vendor.py,
-                     prepare_test_data.py (test data), verify_*.py / compare_versions.py (retail EXE checks)
+server/              Go server: main.go (static files, /api/dplay WebSocket, /healthz), relay/ (DirectPlay
+                     sessions and routing), loadtest/ (many simulated matches against a running server)
+tools/               Python tools: prepare_native.py (game data), convert_help.py (WinHelp to HTML),
+                     fetch_vendor.py, prepare_test_data.py (test data), verify_*.py / compare_versions.py
+                     (retail EXE checks)
 formats/             Standalone C readers for DRS/SLP/palettes (assets.c) and DAT (dat.c), built to small
                      WASM modules by formats/build.py; the tests use them to check the engine independently
 tests/               Node and Python test suites; tests/lib/ holds the JS wrappers they share
 docs/                PLAN.md (port plan and detailed progress log) and images
 reports/             Output of tests and tools (git-ignored)
-Dockerfile, docker/  Container image (engine build + server) and its entry point; compose.yaml
+Dockerfile, docker/  Server and prepare images, the prepare entry point; compose.yaml
 ```
 
 Generated folders are git-ignored: `engine/build/`, `engine/build-release/`, `formats/build/`,
-`web/engine/`, `web/game/`, `web/vendor/` and `reports/`.
+`server/build/`, `web/engine/`, `web/game/`, `web/vendor/` and `reports/`.
 
 ## Building
 
@@ -149,7 +189,6 @@ node tests/test_native_menu.mjs
 node tests/test_native_media.mjs
 node tests/test_native_scenarios.mjs
 AOE_PLAYERS=4 node tests/test_native_multiplayer.mjs    # AOE_PLAYERS=2..8, AOE_PLAY_SECONDS, AOE_DATA
-python3 tests/test_dplay_relay.py
 python3 tests/test_help_convert.py
 python3 tests/test_web_static.py --built
 
@@ -167,7 +206,15 @@ node tests/test_battlefield.mjs
 ```
 
 `AOE_BUILD=build-release` runs the native tests on the release build. Each suite writes a JSON report to
-`reports/`.
+`reports/`. `test_native_multiplayer.mjs` builds and starts the Go server itself (`GO` picks the go command,
+`AOE_SERVER` a prebuilt binary).
+
+The server has its own Go tests (protocol, routing, host migration, many concurrent matches, HTTP and
+WebSocket handling):
+
+```sh
+cd server && go test -race ./...
+```
 
 ### Checking against the retail EXE
 
