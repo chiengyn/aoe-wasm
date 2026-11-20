@@ -53,7 +53,7 @@ async function boot(tag, sound = false) {
     }],
   });
   attachDirectPlay(g.m, `ws://127.0.0.1:${port}/api/dplay`);
-  g.m.callMain(sound ? ['NODXCHECK', 'NOSTARTUP'] : ['NODXCHECK', 'NOSOUND', 'NOSTARTUP']);
+  g.m.callMain(sound ? ['NODXCHECK', 'NOSTARTUP', '800'] : ['NODXCHECK', 'NOSOUND', 'NOSTARTUP', '800']);
   g.state = f => g.m._aoe_test_state(f);
   g.player = (p, a) => g.m._aoe_test_player(p, a);
   g.click = async (x, y) => { g.m._aoe_input_mouse(0, 0, x, y); g.m._aoe_input_mouse(1, 0, x, y); await sleep(40); g.m._aoe_input_mouse(2, 0, x, y); await sleep(300); };

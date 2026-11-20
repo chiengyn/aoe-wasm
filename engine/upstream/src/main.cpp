@@ -61,8 +61,15 @@ extern "C" int __stdcall WinMain(HINSTANCE prog_inst, HINSTANCE prev_inst, char*
     info.use_ima = 0;
     info.use_midi = 0;
     info.use_wave_music = 0;
+#ifdef __EMSCRIPTEN__
+    // Browser port: the largest Options choice (1024x768) is the default. A saved "Screen Size" or a
+    // size on the command line still overrides it.
+    info.main_wid = 1024;
+    info.main_hgt = 768;
+#else
     info.main_wid = 800;
     info.main_hgt = 600;
+#endif
     info.zone_guid = ZONE_GUID;
 
     strcpy(info.data_dir, "data2\\");

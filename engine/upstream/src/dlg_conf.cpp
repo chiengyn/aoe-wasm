@@ -519,6 +519,12 @@ long TribeConfigDialog::action(TPanel* fromPanel, long actionIn, unsigned long a
 
                 // Widescreen (browser port): the choice is the menu size; the game screen keeps its height, widened.
                 RGE_Base_Game::set_menu_screen_size(width, height);
+#ifdef __EMSCRIPTEN__
+                // Browser port: save the choice now. The game otherwise writes it only when it shuts down
+                // (~RGE_Base_Game), which closing the tab never reaches.
+                if (Regs != 0)
+                    Regs->RegSetInt(1, "Screen Size", width);
+#endif
                 RGE_Base_Game::game_screen_size(&width, &height);
 
                 panel_system.setCurrentPanel("Game Screen", 0);

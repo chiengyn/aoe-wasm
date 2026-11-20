@@ -1,6 +1,6 @@
 {
   "reference_commit": "6d6d8b14023aa74e6ac30a6c88229d5b818fb805",
-  "changed_files": 51,
+  "changed_files": 52,
   "changes": [
     {
       "file": "upstream/src/Command.cpp",
@@ -70,7 +70,7 @@
     {
       "file": "upstream/src/dlg_conf.cpp",
       "upstream_sha256": "7b1b2c0fd953f2939fce5a03fa10062eb54937f1c91953d1058c38e041698eaf",
-      "ported_sha256": "9f12e7973757191f1899c98d14f37f8989be53f9e55189612ec3682422552a2e"
+      "ported_sha256": "297dcd4bc43e5e62fdb19ae0383641912b924f03baf18d32672d3205567470f6"
     },
     {
       "file": "upstream/src/drawarea.cpp",
@@ -86,6 +86,11 @@
       "file": "upstream/src/getdxver.cpp",
       "upstream_sha256": "68b30f31c20d0e49237f7c5b5ad8c805e542ada577e79fcaebe3f283cf1f33b9",
       "ported_sha256": "fcf7d699c5bf7d225c3e6ef68b969f0841b7b3cf5da228f82d3fd7c595ef5e68"
+    },
+    {
+      "file": "upstream/src/main.cpp",
+      "upstream_sha256": "8d1427a5de1b31c9f72cc391503446557ad6153f30d77a58a90f5dbe7c082c10",
+      "ported_sha256": "c6a41fa3188855fa2e55b31ca21cf3d686357ddab7cd344a715d0517314ddd3e"
     },
     {
       "file": "upstream/src/music.cpp",

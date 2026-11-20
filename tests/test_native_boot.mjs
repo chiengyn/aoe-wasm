@@ -97,5 +97,7 @@ fs.writeFileSync(new URL('reports/native-boot.json', root), JSON.stringify(repor
 console.log(JSON.stringify(report, null, 2));
 assert.equal(loopSelfTest, 0x1f, 'Asyncify message queue self-test');
 assert.ok(started, 'WinMain must start');
+// Without a saved "Screen Size" or a size on the command line, the game starts at 1024x768.
+if (!process.env.AOE_CMDLINE) assert.deepEqual(frame, {width: 1024, height: 768}, 'Default screen size is 1024x768');
 assert.ok(report.passed, 'Run must end normally or at a named unported Windows call, got: ' + end.kind + ' ' + (end.reason || ''));
 process.exit(0);

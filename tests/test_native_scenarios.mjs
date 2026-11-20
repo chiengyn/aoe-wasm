@@ -24,7 +24,7 @@ const game = await createGame({
     for (const f of native.files) m.FS.writeFile('/' + f.path.toLowerCase(), read('web/' + f.url));
   }],
 });
-try { game.callMain(['NODXCHECK', 'NOSOUND', 'NOSTARTUP']); } catch (e) { if (!/unwind/i.test(String(e))) throw e; }
+try { game.callMain(['NODXCHECK', 'NOSOUND', 'NOSTARTUP', '800']); } catch (e) { if (!/unwind/i.test(String(e))) throw e; }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 for (const end = Date.now() + 20000; !frames && Date.now() < end; ) { if (aborted) throw new Error(aborted); await sleep(50); }
 ok(frames > 0, 'Main menu reached');

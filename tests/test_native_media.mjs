@@ -43,7 +43,7 @@ const game = await createGame({
     for (const f of native.files) m.FS.writeFile('/' + f.path.toLowerCase(), read('web/' + f.url));
   }],
 });
-try { game.callMain(['NODXCHECK', 'NOSTARTUP']); } catch (e) { if (!/unwind/i.test(String(e))) throw e; }
+try { game.callMain(['NODXCHECK', 'NOSTARTUP', '800']); } catch (e) { if (!/unwind/i.test(String(e))) throw e; }
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function until(test, what, ms = 5000) {
@@ -97,7 +97,7 @@ const intro = await createGame({
     for (const f of native.files) m.FS.writeFile('/' + f.path.toLowerCase(), read('web/' + f.url));
   }],
 });
-try { intro.callMain(['NODXCHECK']); } catch (e) { if (!/unwind/i.test(String(e))) throw e; }
+try { intro.callMain(['NODXCHECK', '800']); } catch (e) { if (!/unwind/i.test(String(e))) throw e; }
 const plays = () => videoCalls.filter(c => c[0] === 'play');
 const waitFor = async (test, what, ms = 10000) => { const end = Date.now() + ms; while (Date.now() < end) { if (videoAborted) throw new Error('Aborted: ' + videoAborted); if (test()) return; await sleep(20); } throw new Error('Timed out waiting for ' + what); };
 await waitFor(() => plays().length === 1, 'first intro video');

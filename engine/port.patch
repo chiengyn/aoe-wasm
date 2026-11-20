@@ -349,12 +349,18 @@
      switch (screen_width) {
          case 640:
              this->sizeButton[0]->set_radio_button();
-@@ -516,6 +517,10 @@
+@@ -516,6 +517,16 @@
                      height = 480;
                  }
  
 +                // Widescreen (browser port): the choice is the menu size; the game screen keeps its height, widened.
 +                RGE_Base_Game::set_menu_screen_size(width, height);
++#ifdef __EMSCRIPTEN__
++                // Browser port: save the choice now. The game otherwise writes it only when it shuts down
++                // (~RGE_Base_Game), which closing the tab never reaches.
++                if (Regs != 0)
++                    Regs->RegSetInt(1, "Screen Size", width);
++#endif
 +                RGE_Base_Game::game_screen_size(&width, &height);
 +
                  panel_system.setCurrentPanel("Game Screen", 0);
@@ -465,6 +471,24 @@
          FreeLibrary(DIHinst);
          if (DirectInputCreateA == 0) {
              FreeLibrary(DDHinst);
+--- a/src/main.cpp
++++ b/src/main.cpp
+@@ -61,8 +61,15 @@
+     info.use_ima = 0;
+     info.use_midi = 0;
+     info.use_wave_music = 0;
++#ifdef __EMSCRIPTEN__
++    // Browser port: the largest Options choice (1024x768) is the default. A saved "Screen Size" or a
++    // size on the command line still overrides it.
++    info.main_wid = 1024;
++    info.main_hgt = 768;
++#else
+     info.main_wid = 800;
+     info.main_hgt = 600;
++#endif
+     info.zone_guid = ZONE_GUID;
+ 
+     strcpy(info.data_dir, "data2\\");
 --- a/src/music.cpp
 +++ b/src/music.cpp
 @@ -17,8 +17,8 @@

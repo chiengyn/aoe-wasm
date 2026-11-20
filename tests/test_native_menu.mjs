@@ -28,7 +28,7 @@ const game = await createGame({
     for (const f of native.files) m.FS.writeFile('/' + f.path.toLowerCase(), read('web/' + f.url));
   }],
 });
-try { game.callMain(['NODXCHECK', 'NOSOUND', 'NOSTARTUP']); } catch (e) { if (!/unwind/i.test(String(e))) throw e; }
+try { game.callMain(['NODXCHECK', 'NOSOUND', 'NOSTARTUP', '800']); } catch (e) { if (!/unwind/i.test(String(e))) throw e; }
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function until(test, what, ms = 5000) {

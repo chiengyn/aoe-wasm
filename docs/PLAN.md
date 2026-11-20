@@ -321,6 +321,12 @@ feature then runs through the game's own code.
       copies join without a seam where the art repeats (most cultures). East Asian and Roman bottom panels
       and a few top bars show a faint join.
     - A wider view shows more of the map: in multiplayer, players with wider pages see more.
+  - Default screen size 1024x768 (2026-11-20). Not the retail default (800x600): `WinMain` (`main.cpp`) starts
+    at the largest Options choice. A saved "Screen Size" or a size on the command line (`?cmd=... 800`)
+    still wins. The menu, media, multiplayer and scenario tests pass `800` to keep their 800x600 click
+    positions; `test_native_boot.mjs` checks the 1024x768 default.
+    The in-game Options dialog saves its size choice to the registry when OK is clicked (`dlg_conf.cpp`);
+    the game otherwise writes it only in `~RGE_Base_Game`, which closing the tab never reaches.
   - Tests:
     - `test_native_multiplayer.mjs`: the host's page is 16:9 (lobby 800x600, game screen 1064x600), the
       guest's 4:3; the lockstep checks pass with the two view sizes.
